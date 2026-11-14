@@ -308,6 +308,12 @@ details.playbook summary{cursor:pointer;font-family:var(--display);color:var(--c
 .spk[aria-pressed="true"]{border-color:var(--cyan)}
 .zone.scanning{fill:color-mix(in srgb,var(--cyan) 45%,transparent)!important;stroke:var(--cyan)!important;stroke-dasharray:none!important;filter:drop-shadow(0 0 10px var(--cyan))!important;animation:pulse .9s ease-in-out infinite!important}
 
+/* voice mode indicator */
+.modechip{font-family:var(--display);font-size:.75rem;padding:.1rem .55rem;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.modechip[data-mode="checkin"]{border-color:var(--cyan);color:var(--cyan)}
+.modechip[data-mode="body"]{border-color:var(--lav,#b7a6ff);color:var(--lav,#b7a6ff)}
+.partial b{color:var(--text);font-weight:600}
+
 /* listening mode */
 .listen{width:46px;height:46px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--panel2);display:grid;place-items:center;font-size:1.15rem}
 .listen[aria-pressed="true"]{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 18%,var(--panel));animation:ear 2s ease-out infinite}
@@ -348,7 +354,7 @@ body.listening .holo::after{content:"";position:absolute;width:210px;height:210p
   <div class="col">
   <p class="layer"><b>The app</b> what Rin sees</p>
   <div class="device panel" role="application" aria-label="VesselWatch crew console">
-    <div class="dev-head"><span><b>Crew console</b> · Rin Takeda · Flight day <span id="dDay">47</span></span><span class="right"><span class="lchip" id="lchip">Listening for “Lumi”</span><button class="spk" id="voiceToggle" aria-pressed="true" aria-label="Spoken replies on. Tap to mute" title="Spoken replies">🔊</button><span class="tag tag-sim">Simulated</span></span></div>
+    <div class="dev-head"><span><b>Crew console</b> · Rin Takeda · Flight day <span id="dDay">47</span></span><span class="right"><span class="modechip" id="modeChip" data-mode="agent" title="What Lumi does with what you say">Agent</span><span class="lchip" id="lchip">Listening for “Lumi”</span><button class="spk" id="voiceToggle" aria-pressed="true" aria-label="Spoken replies on. Tap to mute" title="Spoken replies">🔊</button><span class="tag tag-sim">Simulated</span></span></div>
     <div class="alertbar" role="alert" id="alertbar">Red alert: your crew medical officer and Earth have been notified.</div>
     <div class="timeline" aria-label="Mission timeline">
       <div class="tl-track"><div class="tl-fill" id="tlFill"></div><div id="tlPoints"></div><div class="tl-you" id="tlYou"></div></div>
@@ -734,6 +740,7 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
     {re:/\blanding checklist\b/i, ids:["T-LAND"]},
     {re:/\btreatment check.?in\b/i, ids:["T-TREAT"]}
   ];
+  missionCommand.peek = text => MISSION_CMDS.some(c=>c.re.test(text) && M.some(t=>c.ids.includes(t.id)));
   function missionCommand(text){
     for (const c of MISSION_CMDS){
       if (!c.re.test(text)) continue;
@@ -800,7 +807,7 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
         zi.innerHTML=`<h3>Scan complete: ${R.level}</h3><p>${R.message}</p><button class="go alt" id="toMissions">See today’s missions</button>`;
         $("toMissions").onclick=()=>tab("sToday");
       }
-      voiceFlow=false; awaiting=null; clearTimeout(noAnswerT);
+      voiceFlow=false; awaiting=null; bodyStep=-1; clearTimeout(noAnswerT); setMode();
     }, opts.fast?500:1400);
   }
 
@@ -914,13 +921,34 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
   let listenMode=false, engine=null, preferBrowser=true, speakingNow=false;
   let awaiting=null, awaitUntil=0, voiceFlow=false, pendingAck="", lastPrompt="", lastHelp="", bodyStep=-1, noAnswerT=null, reprompts=0, wokeUntil=0;
   const mic=$("mic"), partial=$("partial"), listenBtn=$("listenBtn");
-  const WAKE=/\b(?:(?:hey|hi|ok|okay)\s+)?(lumi|lumie|loomy|lumy|loomie|lumee|lumia|lou me|lu me)\b[,.!?]?\s*/i;
+  const WAKE=/\b(?:(?:hey|hi|ok|okay)\s+)?(lumi|lumie|loomi|loomy|lumy|loomie|lumee|lumia|lumis|lou me|lu me|loo me)\b[,.!?]?\s*/i;
   const HINT="Say “Lumi, activate check-in” or “Lumi, body scan”";
   const DEFAULT_PH=$("sayInput").placeholder;
-  const CMD_CHECKIN=/^(?:please\s+)?(?:activate|start|begin|open|run|do|let'?s(?:\s+do)?)?\s*(?:a|my|the|today'?s)?\s*(?:daily\s+|morning\s+)?check[\s-]?(?:in|up)\b|^(?:good\s+)?morning\b/i;
-  const CMD_BODY=/^(?:please\s+)?(?:activate|start|begin|open|run|do|let'?s(?:\s+do)?)?\s*(?:a|my|the)?\s*body[\s-]?scan\b/i;
-  const CMD_STOP=/^(stop|cancel|pause|never ?mind|quit|end( it)?|that'?s all)\b/i;
-  const CMD_REPEAT=/^(repeat|say (that|it) again|again|what did you say)\b/i;
+  /* --- intent detection: forgiving about how speech-to-text spells things --- */
+  const norm = t => (t||"").toLowerCase().replace(/[‘’]/g,"'").replace(/[^a-z0-9' ]+/g," ").replace(/\s+/g," ").trim();
+  const VERB = /\b(activate|activates|start|begin|open|run|launch|do|let's|lets|go|time for|ready for)\b/;
+  const CHECKIN_WORDS = /\b(check ?ins?|checkin|checking|check ?ups?|checkup|czech in|chicken|daily check|morning check|morning briefing|briefing)\b/;
+  const BODY_WORDS = /\b(body ?scans?|body ?scam|body ?skin|body ?check|scan (my |the )?body)\b/;
+  const STOP_WORDS = /^(stop|cancel|pause|never ?mind|quit|exit|end( it)?|that's all|thats all|i'm done|im done)\b/;
+  const REPEAT_WORDS = /^(repeat|say (that|it) again|again|what did you say|come again|pardon)\b/;
+  const NEAR_CMD = /\b(activate|launch|check|scan|start)\b/;
+  function detectIntent(raw){
+    const t = norm(raw), words = t.split(" ").filter(Boolean).length;
+    const strong = VERB.test(t) || words <= 4;          // short phrases or an action verb count as commands
+    if (STOP_WORDS.test(t)) return "stop";
+    if (REPEAT_WORDS.test(t)) return "repeat";
+    if (BODY_WORDS.test(t) && strong) return "body";
+    if (CHECKIN_WORDS.test(t) && strong) return "checkin";
+    return null;
+  }
+  const MODE_LABEL = { agent:"Agent", checkin:"Check-in", body:"Body scan" };
+  function setMode(){
+    const chip=$("modeChip"); if(!chip) return;
+    const mode = !voiceFlow ? "agent" : bodyStep>=0 ? "body" : "checkin";
+    const step = mode==="body" ? ` · ${Math.min(bodyStep+1,4)} of 4` : mode==="checkin" ? ({sleep:" · 1 of 3", mood:" · 2 of 3", sym:" · 3 of 3"}[awaiting]||"") : "";
+    chip.dataset.mode = mode; chip.textContent = MODE_LABEL[mode] + step;
+  }
+  function showHeard(raw, how){ partial.innerHTML = `Heard “${esc(raw)}” → <b>${how}</b>`; clearTimeout(showHeard.t); showHeard.t=setTimeout(()=>{ partial.textContent=""; }, 5000); }
 
   function setPTT(on){ pttActive=on; mic.classList.toggle("on",on); mic.setAttribute("aria-label", on?"Stop listening":"Talk to Lumi"); if(on) mood("listening"); }
   function setListenUI(on){
@@ -934,6 +962,7 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
   function endFlow(){
     awaiting=null; voiceFlow=false; bodyStep=-1; clearTimeout(noAnswerT);
     document.querySelectorAll(".zone.scanning").forEach(z=>z.classList.remove("scanning"));
+    setMode();
   }
 
   // push-to-talk: one phrase per tap
@@ -980,7 +1009,7 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
   function ask(kind, text, help){
     if (!voiceFlow) return;
     const line=(pendingAck?pendingAck+" ":"")+text; pendingAck="";
-    lastPrompt=text; lastHelp=help||""; awaiting=kind; awaitUntil=Date.now()+45000; reprompts=0;
+    lastPrompt=text; lastHelp=help||""; awaiting=kind; awaitUntil=Date.now()+45000; reprompts=0; setMode();
     speak(line); armNoAnswer();
   }
   function reprompt(help){ awaitUntil=Date.now()+45000; speak("Sorry, I didn’t catch that. "+(help||lastHelp||lastPrompt)); armNoAnswer(); }
@@ -1087,17 +1116,32 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
   }
 
   /* --- router: commands first, then the current question, then free talk --- */
+  // Three modes, checked in this order:
+  //   1. commands (check-in, body scan, stop, repeat) work in every mode
+  //   2. inside Check-in or Body scan, everything else is an answer to the current question
+  //   3. in Agent mode, everything else goes to the medical agent
   function route(text){
     text=(text||"").trim(); if(!text) return;
-    if (CMD_CHECKIN.test(text)){ startVoiceCheckin(); return; }
-    if (CMD_BODY.test(text)){ startBodyScan(); return; }
-    if (CMD_STOP.test(text)){ const was=voiceFlow; endFlow(); if(was) speak("Okay, paused. Say Lumi when you need me."); return; }
-    if (CMD_REPEAT.test(text) && awaiting){ speak(lastPrompt); armNoAnswer(); return; }
-    if (awaiting && Date.now()<awaitUntil){
-      partial.textContent=""; clearTimeout(noAnswerT);
+    const intent = detectIntent(text);
+    if (intent==="checkin"){ showHeard(text,"start check-in"); startVoiceCheckin(); return; }
+    if (intent==="body"){ showHeard(text,"start body scan"); startBodyScan(); return; }
+    if (intent==="stop"){ const was=voiceFlow; endFlow(); showHeard(text,"stop"); if(was) speak("Okay, paused. Say Lumi when you need me."); return; }
+    if (intent==="repeat" && awaiting){ showHeard(text,"repeat"); speak(lastPrompt); armNoAnswer(); return; }
+    if (voiceFlow && awaiting){
+      clearTimeout(noAnswerT); awaitUntil=Date.now()+45000;
+      showHeard(text, MODE_LABEL[bodyStep>=0?"body":"checkin"]+" answer");
       if (awaiting==="body") answerBody(text); else answer(awaiting, text);
       return;
     }
+    if (voiceFlow) return;   // between questions (Lumi is still talking): ignore stray words
+    // Agent mode. Something that sounds like a command but didn't match: ask instead of guessing.
+    if (NEAR_CMD.test(norm(text)) && !agent.parse(text,{}).heard.length && !missionCommand.peek(text)){
+      showHeard(text,"not sure");
+      const m="Did you mean your check-in, or a body scan? Say “check in” or “body scan”.";
+      if (!flow.innerHTML.trim()) render("");
+      append(tx(text,"","you","You")+tx(m)); speak(m); return;
+    }
+    showHeard(text,"medical agent");
     freeForm(text);
   }
   function handleListen(text){
@@ -1110,7 +1154,9 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
       route(rest); return;
     }
     if (Date.now()<wokeUntil){ wokeUntil=0; route(text); return; }
-    if (awaiting && Date.now()<awaitUntil){ route(text); return; }   // answers don't need the wake word
+    if (voiceFlow && awaiting){ route(text); return; }               // answers don't need the wake word
+    const it = detectIntent(text);                                   // "activate check-in" is distinctive enough on its own
+    if ((it==="checkin" || it==="body") && VERB.test(norm(text))){ route(text); return; }
     partial.textContent=`Say “Lumi” first · heard “${text}”`;
   }
   window.__vw = { handleListen };  // test hook: feed text as if it were heard

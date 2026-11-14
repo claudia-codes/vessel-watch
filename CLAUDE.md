@@ -59,6 +59,7 @@ Lumi moods (CSS classes on the SVG): `happy` (cyan, smiling eyes, blush, fast ta
 
 ### Voice
 
+- **Three modes**, shown in the console header chip: **Agent** (default: free talk goes to the medical agent), **Check-in** and **Body scan** (everything said is an answer to the current question until the flow ends or "stop"). Commands work in every mode. Intent detection normalizes the transcript (case, punctuation) and accepts common mishearings ("checking", "check up", "body scam"); a phrase counts as a command if it's short (≤4 words) or has an action verb (activate, start…). Near-commands that don't match get "Did you mean…?" instead of going to the agent. The line under Lumi shows what was heard and how it was routed.
 - Wake word "Lumi". Commands: "Lumi, activate check-in" and "Lumi, body scan". "Lumi, repeat" and "Lumi, stop" during a session. "Lumi" alone waits ~8 s for a command.
 - Turn-taking: Lumi asks, listens, echoes what it understood ("Got it, a short night"), then asks the next question. Answers don't need the wake word. One reprompt after ~25 s of silence, then it pauses.
 - Body scan goes zone by zone; a red flag (chest pain, breathlessness, sudden severe headache, neuro signs) stops the scan and runs the agent immediately.
