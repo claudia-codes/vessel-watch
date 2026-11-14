@@ -308,6 +308,20 @@ details.playbook summary{cursor:pointer;font-family:var(--display);color:var(--c
 .spk[aria-pressed="true"]{border-color:var(--cyan)}
 .zone.scanning{fill:color-mix(in srgb,var(--cyan) 45%,transparent)!important;stroke:var(--cyan)!important;stroke-dasharray:none!important;filter:drop-shadow(0 0 10px var(--cyan))!important;animation:pulse .9s ease-in-out infinite!important}
 
+/* how Lumi understood you */
+.sec h3 .aisrc{font-family:var(--body);font-weight:500;font-size:.75rem;margin-left:.4rem;padding:.05rem .45rem;border:1px solid var(--line);color:var(--muted)}
+.sec h3 .aisrc.ai{border-color:var(--cyan);color:var(--cyan)}
+.aitoggle{float:right;background:none;border:1px solid var(--line);color:var(--muted);font-family:var(--display);font-size:.75rem;padding:.1rem .5rem}
+.aitoggle[aria-pressed="true"]{border-color:var(--cyan);color:var(--cyan)}
+.aitoggle[hidden]{display:none}
+.usaid{font-size:.88rem;color:var(--text);margin:0 0 .4rem;font-style:italic}
+.uchips{display:flex;flex-wrap:wrap;gap:.35rem}
+.uchip{font-size:.8rem;padding:.12rem .5rem;border:1px solid var(--line);color:var(--text)}
+.uchip.p{border-color:var(--amber);color:var(--amber)}
+.uchip.r{border-color:var(--crimson);color:var(--crimson)}
+.uchip.a{color:var(--muted)}
+.unote{font-size:.8rem;color:var(--amber);margin:.4rem 0 0}
+
 /* voice mode indicator */
 .modechip{font-family:var(--display);font-size:.75rem;padding:.1rem .55rem;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
 .modechip[data-mode="checkin"]{border-color:var(--cyan);color:var(--cyan)}
@@ -416,6 +430,9 @@ body.listening .holo::after{content:"";position:absolute;width:210px;height:210p
         <div class="badge">MD</div>
         <div><h2>Flight medicine playbook</h2><p>Rules written the way a flight physician triages, each tied to its evidence. No black box: every recommendation shows which rule fired.</p></div>
       </div>
+
+      <div class="sec"><h3>How Lumi understood you <span class="aisrc" id="aiSrc">Rules only</span><button class="aitoggle" id="aiToggle" aria-pressed="true" hidden>AI understanding: on</button></h3>
+        <div id="understood"><p class="checked">Nothing said yet. Talk or type to Lumi.</p></div></div>
 
       <div class="sec"><h3>What the agent sees</h3><dl class="inputs" id="inputs"><dt>Status</dt><dd>Waiting for a check-in</dd></dl></div>
 
@@ -892,13 +909,93 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
     hidePrototype(); voiceFlow=false; awaiting=null; runScenario(b.dataset.s);
   });
 
-  /* ---------- talking to Lumi ---------- */
-  function parseSpeech(t){
-    const {signals, heard} = agent.parse(t, toSignals(S));
-    S.sym = new Set(signals.symptoms); S.sleepH = signals.sleepH; S.shortNights = signals.shortNights; S.mood = signals.mood;
-    if (!heard.length && /\b(good|great|fine|happy|okay|ok)\b/i.test(t)){ S.mood = S.mood || "good"; heard.push("Feeling fine"); }
-    return heard;
+  /* ---------- understanding what was said ----------
+     Two readers, one decision-maker:
+       - the playbook's rules (negation-aware keyword reader, always on, works offline)
+       - Claude, when this page runs inside claude.ai (reads free speech into the same structured signals)
+     The medical agent's rules make every decision. Safety merge: a red flag stays logged if EITHER reader
+     heard it; Claude can only overrule the rules on non-serious symptoms. Lumi always says back what it
+     understood, so the crew member can correct it ("no, no chest pain"). */
+  const SYM_ID = Object.fromEntries(playbook.lexicon.symptoms.map(e=>[e.label, e.symptom]));
+  const ALL_SYM = playbook.lexicon.symptoms.map(e=>e.symptom);
+  const RED_SYM = ["chest","breath","severeHead","neuro"];
+  let aiSample=null, aiOn=true, lastQuestion="";
+  const AI_DESC = {headache:"headache", severeHead:"sudden, severe or 'worst ever' headache", puffy:"face or eyes puffier than usual",
+    neck:"neck swelling, pain or ache", chest:"chest pain, tightness or pressure", breath:"trouble breathing or breathless (not normal breathlessness right after exercise)",
+    neuro:"weakness, numbness, drooping face, slurred speech, sudden vision loss, or can't find words", vision:"gradual or blurry vision change",
+    palp:"heart racing, pounding or skipping", exertionFatigue:"unusually tired during exercise"};
+  function aiPrompt(text, question){
+    return `You turn an astronaut's own words into structured signals for a rule-based medical checklist. You do not diagnose or give advice.
+${question ? `Lumi asked: "${question}"\n` : ""}They said: "${text.replace(/"/g,"'")}"
+
+Symptom ids:
+${ALL_SYM.map(id=>`- ${id}: ${AI_DESC[id]||SYM_LABEL[id]}`).join("\n")}
+
+"present": symptoms they say they have now. "absent": symptoms they say they don't have, or that have gone away. Leave out anything not mentioned. If you're unsure whether chest, breath, severeHead or neuro is present, put it in "present".
+"sleep": "short", "ok", "good" or null. "mood": "low", "meh", "good" or null.
+Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null}`;
   }
+  function cleanAI(j){
+    const ids = a => Array.isArray(a) ? [...new Set(a.map(String).filter(x=>ALL_SYM.includes(x)))] : [];
+    return { present: ids(j?.present), absent: ids(j?.absent),
+      sleep: ["short","ok","good"].includes(j?.sleep) ? j.sleep : null,
+      mood: ["low","meh","good"].includes(j?.mood) ? j.mood : null };
+  }
+  async function understand(text, question=""){
+    const r = agent.parse(text, toSignals(S));
+    const rulesPresent = r.signals.symptoms.filter(x=>!S.sym.has(x));
+    const rulesAbsent = r.negated.map(l=>SYM_ID[l]).filter(Boolean);
+    const rulesSleep = r.heard.includes("Short sleep") ? "short" : r.heard.includes("Good sleep") ? "good" : null;
+    const rulesMood = r.heard.includes("Low mood") ? "low" : null;
+    let ai=null, source="Rules only";
+    if (aiSample && aiOn){
+      try{ ai = cleanAI(await aiSample.json(aiPrompt(text, question), {modelTier:"quick"})); source="AI + rules"; }
+      catch(e){
+        if (["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(e?.code)){ aiSample=null; syncAI(); }
+      }
+    }
+    const present = new Set([...rulesPresent, ...(ai?.present||[])]);
+    const absent = new Set([...rulesAbsent, ...(ai?.absent||[])]);
+    const disagreed = [];
+    if (ai) for (const x of rulesPresent){
+      if (!ai.absent.includes(x)) continue;
+      if (RED_SYM.includes(x)) disagreed.push(x);   // keep the safer reading
+      else present.delete(x);                        // Claude may overrule the rules on minor symptoms
+    }
+    for (const x of present) absent.delete(x);
+    return { text, present:[...present], absent:[...absent].filter(x=>S.sym.has(x)||rulesAbsent.includes(x)||ai?.absent.includes(x)),
+             sleep: ai?.sleep ?? rulesSleep, mood: ai?.mood ?? rulesMood, source, disagreed };
+  }
+  function applyUnderstanding(u){
+    u.present.forEach(x=>S.sym.add(x)); u.absent.forEach(x=>S.sym.delete(x)); S.sym.delete("none");
+    if (u.sleep==="short"){ S.sleepH=Math.min(S.sleepH,5.2); S.shortNights=Math.max(1,S.shortNights); }
+    if (u.sleep==="ok") S.sleepH=6.6;
+    if (u.sleep==="good") S.sleepH=Math.max(S.sleepH,7.3);
+    if (u.mood) S.mood=u.mood;
+    showUnderstanding(u);
+  }
+  const lc = x => SYM_LABEL[x].toLowerCase();
+  function ackText(u){
+    const parts=[];
+    if (u.present.length) parts.push("I heard " + u.present.map(lc).join(", "));
+    if (u.absent.length) parts.push((parts.length?"and ":"Noted: ") + "no " + u.absent.map(lc).join(", no "));
+    let t = parts.length ? parts.join(" ") + "." : "";
+    if (u.disagreed.length) t += ` To be safe I logged ${u.disagreed.map(lc).join(" and ")}. Say “no ${lc(u.disagreed[0])}” if that’s wrong.`;
+    return t;
+  }
+  function showUnderstanding(u){
+    $("aiSrc").textContent=u.source; $("aiSrc").classList.toggle("ai", u.source!=="Rules only");
+    const chip=(x,c)=>`<span class="uchip ${c}">${c==="a"?"No ":""}${c==="a"?SYM_LABEL[x].toLowerCase():SYM_LABEL[x]}</span>`;
+    const st = [u.sleep && `<span class="uchip">Sleep: ${u.sleep}</span>`, u.mood && `<span class="uchip">Mood: ${u.mood}</span>`].filter(Boolean).join("");
+    const chips = u.present.map(x=>chip(x, RED_SYM.includes(x)?"r":"p")).join("") + u.absent.map(x=>chip(x,"a")).join("") + st;
+    $("understood").innerHTML = `<p class="usaid">“${esc(u.text)}”</p><div class="uchips">${chips || '<span class="uchip a" style="text-decoration:none">nothing health-related</span>'}</div>`
+      + (u.disagreed.length ? `<p class="unote">The rules heard ${u.disagreed.map(lc).join(", ")}, Claude didn’t. Kept it, to be safe.</p>` : "");
+  }
+  function syncAI(){
+    const b=$("aiToggle"); b.hidden=!aiSample; b.setAttribute("aria-pressed",aiOn); b.textContent="AI understanding: "+(aiOn?"on":"off");
+    if (!aiSample || !aiOn){ $("aiSrc").textContent="Rules only"; $("aiSrc").classList.remove("ai"); }
+  }
+  $("aiToggle").onclick=()=>{ aiOn=!aiOn; syncAI(); };
   // Everything Lumi hears or reads (typed, push-to-talk, listening mode) goes through route().
   function heard(text){ route(text); }
   function freeForm(text){
@@ -909,17 +1006,23 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
     const cmd = missionCommand(text);
     if (cmd){ append(tx(cmd,"","","Lumi logged")); speak(cmd); return; }
     // Anything that isn't a command or a mission goes to the medical agent.
-    const found = parseSpeech(text);
-    append(tx(found.length ? "Heard: " + found.join(", ") + "." : "No new symptoms in that. Checking where you stand…", "", "", "Medical agent"));
-    if (!found.length) pendingAck = "I didn’t spot a new symptom in that, so here’s where you stand.";
-    runAgent({fast:true, noReward: !found.length});
+    mood("thinking");
+    understand(text).then(u=>{
+      applyUnderstanding(u);
+      let any = u.present.length || u.absent.length || u.sleep || u.mood;
+      if (!any && /\b(good|great|fine|happy|okay|ok)\b/i.test(text)){ S.mood = S.mood || "good"; any = true; }
+      const ack = ackText(u);
+      append(tx(ack || (any ? "Got it." : "No symptoms in that. Here’s where you stand…"), "", u.disagreed.length?"amber":"", "Medical agent · "+u.source));
+      pendingAck = ack || (any ? "" : "I didn’t spot anything health-related in that, so here’s where you stand.");
+      runAgent({fast:true, noReward: !any});
+    });
   }
   $("sayForm").addEventListener("submit", e=>{ e.preventDefault(); const v=$("sayInput").value; $("sayInput").value=""; heard(v); });
 
   /* ---------- voice in: push-to-talk, and listening mode with the "Lumi" wake word ---------- */
   let dict=null, recog=null, listenRecog=null, pttActive=false, buffer="";
   let listenMode=false, engine=null, preferBrowser=true, speakingNow=false;
-  let awaiting=null, awaitUntil=0, voiceFlow=false, pendingAck="", lastPrompt="", lastHelp="", bodyStep=-1, noAnswerT=null, reprompts=0, wokeUntil=0;
+  let lastKind=null, awaiting=null, awaitUntil=0, voiceFlow=false, pendingAck="", lastPrompt="", lastHelp="", bodyStep=-1, noAnswerT=null, reprompts=0, wokeUntil=0;
   const mic=$("mic"), partial=$("partial"), listenBtn=$("listenBtn");
   const WAKE=/\b(?:(?:hey|hi|ok|okay)\s+)?(lumi|lumie|loomi|loomy|lumy|loomie|lumee|lumia|lumis|lou me|lu me|loo me)\b[,.!?]?\s*/i;
   const HINT="Say “Lumi, activate check-in” or “Lumi, body scan”";
@@ -1009,10 +1112,10 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
   function ask(kind, text, help){
     if (!voiceFlow) return;
     const line=(pendingAck?pendingAck+" ":"")+text; pendingAck="";
-    lastPrompt=text; lastHelp=help||""; awaiting=kind; awaitUntil=Date.now()+45000; reprompts=0; setMode();
+    lastPrompt=text; lastHelp=help||""; awaiting=kind; lastKind=kind; awaitUntil=Date.now()+45000; reprompts=0; setMode();
     speak(line); armNoAnswer();
   }
-  function reprompt(help){ awaitUntil=Date.now()+45000; speak("Sorry, I didn’t catch that. "+(help||lastHelp||lastPrompt)); armNoAnswer(); }
+  function reprompt(help){ awaiting=lastKind; awaitUntil=Date.now()+45000; speak("Sorry, I didn’t catch that. "+(help||lastHelp||lastPrompt)); armNoAnswer(); }
 
   /* --- voice check-in --- */
   function startVoiceCheckin(){
@@ -1043,12 +1146,14 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
       awaiting=null; pendingAck=MOOD_ACK[v]; flow.querySelector(`.chip[data-k="m"][data-v="${v}"]`)?.click(); return;
     }
     if (kind==="sym"){
-      const { signals } = agent.parse(text, toSignals(S));
-      const found = signals.symptoms.filter(x=>!S.sym.has(x));
-      if (found.length){ found.forEach(x=>S.sym.add(x)); S.sym.delete("none"); pendingAck="Got it: "+found.map(x=>SYM_LABEL[x].toLowerCase()).join(", ")+"."; }
-      else if (NO.test(t)){ S.sym.clear(); pendingAck="Okay, nothing new."; }
-      else return reprompt("Any headache, puffy face, or heart racing? Or say nothing new.");
-      awaiting=null; $("q3go")?.click(); return;
+      mood("thinking");
+      understand(text, lastPrompt).then(u=>{
+        if (u.present.length || u.absent.length){ applyUnderstanding(u); pendingAck = ackText(u) || "Got it."; }
+        else if (NO.test(t)){ S.sym.clear(); pendingAck="Okay, nothing new."; showUnderstanding(u); }
+        else return reprompt("Any headache, puffy face, or heart racing? Or say nothing new.");
+        $("q3go")?.click();
+      });
+      return;
     }
   }
 
@@ -1076,24 +1181,25 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
     mood("listening");
     ask("body", st.q, st.help);
   }
-  function answerBody(text){
+  async function answerBody(text){
     const st=BODY[bodyStep], t=text.toLowerCase();
-    const { signals } = agent.parse(text, toSignals(S));
+    mood("thinking");
+    const u = await understand(text, st.q);
     let ack="";
     if (st.zone==="mind"){
       let got=false;
-      if (signals.shortNights>S.shortNights || signals.sleepH<S.sleepH){ S.sleepH=signals.sleepH; S.shortNights=signals.shortNights; got=true; }
+      if (u.sleep){ applyUnderstanding({...u, present:[], absent:[], mood:null}); got=true; }
       else if (/slept|sleep|night/.test(t)){ const v=readSleep(t); if(v){ S.sleepH = v==="rough"?5.2 : v==="ok"?6.6 : 7.4; if(v==="rough") S.shortNights=Math.max(1,S.shortNights); got=true; } }
-      const feel = t.replace(/.*?(feel|feeling|mood)/,""); const m = readMood(feel!==t?feel:t);
-      if (m && (feel!==t || !got)){ S.mood=m; got=true; }
+      if (u.mood){ S.mood=u.mood; got=true; }
+      else { const feel = t.replace(/.*?(feel|feeling|mood)/,""); const m = readMood(feel!==t?feel:t); if (m && (feel!==t || !got)){ S.mood=m; got=true; } }
       if (!got) return reprompt(st.help);
+      showUnderstanding(u);
       const bad = S.sleepH<BASE_SLEEP-1 || S.mood==="low";
       zones.mind = bad ? "watch" : "ok";
       ack = bad ? "Thanks. I’ll keep an eye on that." : "Sounds good.";
     } else {
-      const found = signals.symptoms.filter(x=>!S.sym.has(x));
-      if (found.length){ found.forEach(x=>S.sym.add(x)); ack="Got it: "+found.map(x=>SYM_LABEL[x].toLowerCase()).join(", ")+"."; }
-      else if (NO.test(t)) ack="Okay, all clear.";
+      if (u.present.length || u.absent.length){ applyUnderstanding(u); ack = u.present.length ? ackText(u) : "Okay, all clear."; }
+      else if (NO.test(t)){ ack="Okay, all clear."; showUnderstanding(u); }
       else if (/\byes\b/.test(t)) return reprompt("Which one? "+st.help);
       else return reprompt(st.help);
       const inZone = { head:["headache","vision","severeHead","neuro"], neck:["neck","puffy"], heart:["palp","chest","breath"] }[st.zone];
@@ -1126,11 +1232,12 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
     if (intent==="checkin"){ showHeard(text,"start check-in"); startVoiceCheckin(); return; }
     if (intent==="body"){ showHeard(text,"start body scan"); startBodyScan(); return; }
     if (intent==="stop"){ const was=voiceFlow; endFlow(); showHeard(text,"stop"); if(was) speak("Okay, paused. Say Lumi when you need me."); return; }
-    if (intent==="repeat" && awaiting){ showHeard(text,"repeat"); speak(lastPrompt); armNoAnswer(); return; }
+    if (intent==="repeat" && (awaiting || lastKind) && voiceFlow){ awaiting=lastKind; showHeard(text,"repeat"); speak(lastPrompt); armNoAnswer(); return; }
     if (voiceFlow && awaiting){
       clearTimeout(noAnswerT); awaitUntil=Date.now()+45000;
       showHeard(text, MODE_LABEL[bodyStep>=0?"body":"checkin"]+" answer");
-      if (awaiting==="body") answerBody(text); else answer(awaiting, text);
+      const k=awaiting; awaiting=null;            // busy until this answer is understood
+      if (k==="body") answerBody(text); else answer(k, text);
       return;
     }
     if (voiceFlow) return;   // between questions (Lumi is still talking): ignore stray words
@@ -1201,8 +1308,8 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
   (async ()=>{
     if (window.claude && typeof window.claude.use==="function"){
       window.__claudeView = true;
-      const [d,t] = await Promise.all([claude.use("dictation").catch(()=>null), claude.use("tts").catch(()=>null)]);
-      tts = t;
+      const [d,t,sm] = await Promise.all([claude.use("dictation").catch(()=>null), claude.use("tts").catch(()=>null), claude.use("sample").catch(()=>null)]);
+      tts = t; aiSample = sm; syncAI();
       if (d){
         dict=d; listenBtn.hidden=false; if(!browserMic) mic.hidden=false;
         d.onPartial(({text})=>{ if(text) partial.textContent=text; });

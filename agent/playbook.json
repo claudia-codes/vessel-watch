@@ -1,7 +1,7 @@
 {
   "meta": {
     "name": "VesselWatch flight medicine playbook",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "status": "draft - pending clinician review",
     "updated": "2026-11-14",
     "scope": "Decision support for astronaut circulation, heart and wellbeing self-checks on long missions. Not a diagnostic device.",
@@ -850,9 +850,11 @@
         "symptom": "severeHead",
         "label": "Sudden severe headache",
         "patterns": [
-          "worst headache",
-          "sudden (severe |bad )?headache",
-          "thunderclap"
+          "(worst|most painful|excruciating|explosive) headache",
+          "sudden(ly)? (a )?(severe |bad |terrible |awful |excruciating |massive )?headache",
+          "thunderclap",
+          "head (suddenly )?(exploded|explodes|exploding)",
+          "headache (came )?out of nowhere"
         ]
       },
       {
@@ -860,8 +862,9 @@
         "label": "Headache",
         "patterns": [
           "headache",
-          "head (hurts|aches|is pounding)",
-          "migraine"
+          "head (hurts|aches|is pounding|is killing me)",
+          "migraine",
+          "pounding head"
         ],
         "unless": "severeHead"
       },
@@ -885,28 +888,44 @@
         "symptom": "chest",
         "label": "Chest pain",
         "patterns": [
-          "chest (pain|hurts|tight|pressure)",
-          "pain in my chest"
+          "chest (pain|hurts|hurting|tight|tightness|pressure|ache|aches)",
+          "(pain|pressure|tightness|ache|aching|heaviness) in (my|the) chest",
+          "chest (feels|is|was|got|just feels) (really |so |very |a bit |kind of )?(tight|heavy|painful|sore)",
+          "(tight|heavy|aching|crushing|sore) chest",
+          "crushing (my|the) chest"
         ]
       },
       {
         "symptom": "breath",
         "label": "Sudden breathlessness",
         "patterns": [
-          "(can'?t|cannot|hard to|trouble|struggling to) breathe",
+          "(can'?t|cannot|can not|hard to|trouble|difficulty|struggling to|struggle to|unable to) (breathe|breathing|catch my breath|get (enough )?air)",
           "short(ness)? of breath",
-          "breathless"
+          "breathless(ness)?",
+          "out of breath(?! (after|on|during|from) (the |my |a )?(exercise|workout|treadmill|bike|training|run|session))",
+          "gasping( for air)?",
+          "breathing (is|feels) (really |so |very )?(hard|difficult|tough|labou?red)"
         ]
       },
       {
         "symptom": "neuro",
         "label": "Weakness or speech trouble",
         "patterns": [
-          "weak(ness)? (in|on) (my )?(arm|leg|side)",
-          "numb",
+          "weak(ness)? (in|on) (my )?(left |right )?(arm|leg|side|hand)s?",
+          "(arm|leg|hand|side) (is|feels) (weak|numb|heavy|dead)",
+          "numb(ness)?",
           "slurr",
-          "can'?t speak",
-          "face (is )?droop"
+          "can'?t (speak|talk)( properly| clearly| right)?",
+          "face (is )?droop",
+          "drooping",
+          "can'?t (move|lift|feel) my (arm|leg|hand|face)",
+          "(lost|losing|loss of) (my )?(vision|sight)",
+          "vision loss",
+          "(suddenly|completely) can'?t see",
+          "can'?t see (anything|at all|out of)",
+          "went (dark|black) in (one|my) eye",
+          "can'?t find (my |the )?words",
+          "words (come|are coming) out wrong"
         ]
       },
       {
@@ -943,10 +962,10 @@
         "patterns": [
           "(bad|rough|terrible|awful|short) night",
           "slept (badly|poorly|terribly)",
-          "didn'?t sleep",
-          "couldn'?t sleep",
+          "(didn'?t|did not|couldn'?t|could not) sleep",
           "no sleep",
-          "insomnia"
+          "insomnia",
+          "barely slept"
         ],
         "set": {
           "sleepH": 5.2,
@@ -973,7 +992,15 @@
           "mood": "low"
         }
       }
-    ]
+    ],
+    "negation": {
+      "note": "A symptom counts only if no negation applies to it. Scope stops at punctuation and at 'but', 'and', 'however' and similar. 'before' is checked on the last few words before the symptom, 'inside' within its own words (e.g. 'heart is not racing'), 'after' on the words just after it (e.g. 'is gone').",
+      "clauseBreak": "[.;!?,]|\\b(but|however|although|though|except|yet|and|so|because)\\b",
+      "before": "\\b(no|not|never|without|none|nor|neither|zero|free of|no longer|deny|denies|absence of|cannot|dont|doesnt|didnt|isnt|wasnt|arent|werent|havent|hasnt|hadnt|cant|couldnt|wont|aint)\\b|\\b[a-z]+n't\\b",
+      "beforeWords": 3,
+      "inside": "\\b(not|no longer|never)\\b|\\b(is|was|are|were|does|did|do|has|have|had)n'?t\\b",
+      "after": "^\\W*([a-z']+\\W+){0,2}?(is |are |has |have |had |'s )?(gone|went away|passed|resolved|cleared up|stopped|disappeared|is over|'s over)\\b"
+    }
   },
   "maintenance": {
     "note": "Daily missions are generated from today's signals and the rules that matched. Goals marked demo are placeholders for a clinician or the crew's own plan.",

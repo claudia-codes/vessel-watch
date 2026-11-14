@@ -38,6 +38,8 @@ A NASA Space Apps 2026 hackathon prototype. VesselWatch is an astronaut health c
 | `agent/agent.js` | Engine (ES module): `createAgent`, `loadPlaybook`, `assess`, `parse`, `planDay` |
 | `agent/agent.py` | Same engine in Python (`Agent.from_file`, `assess`, `parse`, `plan_day`) for a FastAPI backend |
 | `agent/scenarios.json` | 11 test scenarios, with expected severity, rules and missions |
+| `agent/redflags.json` | Safety set: 54 red-flag phrasings (must be caught), 44 negations (must not alarm), mixed sentences, clearing checks |
+| `.github/workflows/agent-tests.yml` | Runs both engines' tests on every push/PR touching `agent/` |
 | `agent/test.mjs`, `agent/test_agent.py` | Test runners; both must print "All passed" |
 | `agent/README.md` | Agent docs: signals, rule format, evidence levels, reuse |
 | `prototypes/` | Other team prototypes shown from Demo controls → "Other prototypes" (e.g. `watch.html`, the smartwatch companion). To add one: put the file here and add a line to `PROTOTYPES` in `index.html` |
@@ -67,7 +69,14 @@ Lumi moods (CSS classes on the SVG): `happy` (cyan, smiling eyes, blush, fast ta
 - Engines: browser SpeechRecognition + speech synthesis (Chrome) gives a full spoken loop, pausing recognition while Lumi speaks. Inside claude.ai the app can use the `dictation` and `tts` artifact capabilities, but the platform can't speak while dictating, so replies there are on screen with a chime. Present the live demo from the Vercel deploy in Chrome.
 - `window.__vw.handleListen(text)` is a test hook that feeds text as if heard.
 
-## The medical agent (playbook v0.4.0)
+## Understanding speech
+
+- `agent.parse` is negation-aware (config in `lexicon.negation`): "no chest pain", "my headache is gone", "heart isn't racing" don't count and clear earlier entries. Returns `{signals, heard, negated}`.
+- In the app, `understand()` combines two readers: the rules, and Claude via the artifact `sample` capability (only inside claude.ai; `modelTier: "quick"`, JSON output validated against the symptom ids). The rules decide. **Safety merge:** a red flag stays if either reader heard it (disagreement is shown in the panel); Claude may overrule rules only on minor symptoms. Lumi echoes what it understood ("I heard headache, and no chest pain") so the user can correct it.
+- Agent panel section "How Lumi understood you" shows the utterance, chips (present / no …), the source (AI + rules or Rules only) and an AI on/off toggle.
+- Never weaken the safety merge or delete test cases to make tests pass; add the failing phrase to `redflags.json` and fix the lexicon.
+
+## The medical agent (playbook v0.5.0)
 
 Severity: 0–1 Green (nobody told), 2 Amber (crew medical officer told what to do), 3 Red (medical officer now plus Earth). Roles: crew, cmo, cmd (commander), earth.
 
@@ -116,6 +125,7 @@ Suggested ownership: UI, Lumi and voice → Claudia; backend and NASA data → b
 
 1. Finish the Vercel import and verify the live URL (playbook loads, scenarios run, voice works in Chrome).
 2. Split `index.html` into modules before teammates start, to avoid merge conflicts: `styles.css`, `js/lumi.js`, `js/voice.js`, `js/missions.js`, `js/app.js`.
-3. Branch + pull request workflow; Vercel previews per PR; freeze `main` before the demo.
+3. Branch + pull request workflow (agent tests run automatically); Vercel previews per PR; freeze `main` before the demo.
+3b. For AI understanding outside claude.ai (Vercel), add a small backend endpoint that calls the Claude API with a server-side key; the page currently falls back to rules only there.
 4. Get a doctor to review the playbook; replace demo thresholds.
 5. Optional features discussed: guided ultrasound scan mode, landing-readiness countdown, heart-rate trends; future-countermeasures slide (LBNP, thigh cuffs, compression garments, fluid loading, SPRINT exercise, circadian lighting, VR, self-guided therapy). Don't recommend iron supplements for space anemia.

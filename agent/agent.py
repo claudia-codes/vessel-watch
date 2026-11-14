@@ -103,6 +103,38 @@ def evaluate(cond: Any, s: dict) -> bool:
     raise ValueError(f"Unknown condition: {json.dumps(cond)}")
 
 
+def negation_checker(cfg: dict | None):
+    """Return is_negated(t, start, end, before_only=False) for a match in text t. Mirrors agent.js."""
+    if not cfg:
+        return lambda *a, **k: False
+    brk = re.compile(cfg["clauseBreak"], re.I)
+    before = re.compile(cfg["before"], re.I)
+    inside = re.compile(cfg["inside"], re.I)
+    after = re.compile(cfg["after"], re.I)
+    n = cfg.get("beforeWords", 3)
+
+    def is_negated(t: str, start: int, end: int, before_only: bool = False) -> bool:
+        cs, ce = 0, len(t)
+        for m in brk.finditer(t):
+            if not m.group(0):
+                continue
+            if m.end() <= start:
+                cs = max(cs, m.end())
+            elif m.start() >= end:
+                ce = min(ce, m.start())
+                break
+        pre = " ".join(re.findall(r"[a-z0-9']+", t[cs:start])[-n:])
+        if before.search(pre):
+            return True
+        if before_only:
+            return False
+        if inside.search(t[start:end]):
+            return True
+        return bool(after.search(t[end:ce]))
+
+    return is_negated
+
+
 def _first_sentence(text: str) -> str:
     m = re.match(r"^.*?[.?!](\s|$)", text)
     return (m.group(0) if m else text).strip()
@@ -169,19 +201,39 @@ class Agent:
         }
 
     def parse(self, text: str, data: dict | None = None) -> dict:
+        """Turn speech or text into signal updates. Negation-aware, like agent.js:
+        negated symptoms don't count and clear a symptom logged earlier."""
         s = normalize_signals(data)
-        t = (text or "").lower()
+        t = (text or "").lower().replace("\u2018", "'").replace("\u2019", "'")
+        is_neg = negation_checker(self.lexicon.get("negation"))
         heard: list[str] = []
+        negated: list[str] = []
         sym = list(s["symptoms"])
         for entry in self.lexicon.get("symptoms", []):
-            if entry.get("unless") in sym:
-                continue
-            if any(re.search(_js_regex(p), t, re.I) for p in entry["patterns"]) and entry["symptom"] not in sym:
-                sym.append(entry["symptom"])
-                heard.append(entry["label"])
+            pos = neg = False
+            for p in entry["patterns"]:
+                for m in re.finditer(p, t, re.I):
+                    if not m.group(0):
+                        continue
+                    if is_neg(t, m.start(), m.end()):
+                        neg = True
+                    else:
+                        pos = True
+            if pos:
+                if entry.get("unless") and entry["unless"] in sym:
+                    continue
+                if entry["symptom"] not in sym:
+                    sym.append(entry["symptom"])
+                    heard.append(entry["label"])
+            elif neg:
+                if entry["symptom"] in sym:
+                    sym.remove(entry["symptom"])
+                negated.append(entry["label"])
         s["symptoms"] = sym
         for entry in self.lexicon.get("state", []):
-            if not any(re.search(_js_regex(p), t, re.I) for p in entry["patterns"]):
+            pos = any(m.group(0) and not is_neg(t, m.start(), m.end(), True)
+                      for p in entry["patterns"] for m in re.finditer(p, t, re.I))
+            if not pos:
                 continue
             st = entry.get("set", {})
             if "sleepH" in st:
@@ -191,7 +243,7 @@ class Agent:
             if "mood" in st:
                 s["mood"] = st["mood"]
             heard.append(entry["label"])
-        return {"signals": s, "heard": heard}
+        return {"signals": s, "heard": heard, "negated": negated}
 
     def plan_day(self, data: dict) -> dict:
         """Today's assessment, the daily missions it implies, and the NASA schedule from launch to landing."""
