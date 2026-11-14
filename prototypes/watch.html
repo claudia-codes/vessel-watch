@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#C9A475" />
+<meta name="theme-color" content="#08121c" />
 <title>Inner Ground Control · Watch</title>
 <!--
   Inner Ground Control — watch companion (NASA Space Apps 2026, hackathon prototype)
@@ -14,30 +14,30 @@
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet" />
 <style>
   :root {
     --k: 1;
     /* Watch UI: OLED black + the app's dark cabin palette */
-    --surface: #161E26;
-    --surface-2: #1D2731;
-    --ink: #E8ECEF;
-    --muted: #A0ABB6;
-    --line: #2A3540;
-    --track: #1C242E;
-    --mind: #A9A6EE;
-    --mind-ink: #14132A;
-    --mind-soft: rgba(169,166,238,.16);
-    --heart: #EE9C93;
-    --heart-ink: #2A1210;
-    --heart-soft: rgba(238,156,147,.15);
-    --ok: #8CCBA6;
-    --ok-soft: rgba(140,203,166,.15);
-    --warn: #E3C07E;
-    --warn-soft: rgba(227,192,126,.15);
+    --surface: #0e1d2b;
+    --surface-2: #132638;
+    --ink: #d8e7ef;
+    --muted: #87a1b1;
+    --line: #23415a;
+    --track: #132638;
+    --mind: #62d6ea;
+    --mind-ink: #08121c;
+    --mind-soft: rgba(98,214,234,.16);
+    --heart: #ff7d92;
+    --heart-ink: #2a0d14;
+    --heart-soft: rgba(255,125,146,.15);
+    --ok: #5fcf8e;
+    --ok-soft: rgba(95,207,142,.15);
+    --warn: #f0a63a;
+    --warn-soft: rgba(240,166,58,.15);
     --hole: #B48F62;
     --wood: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1400' height='700'%3E%3Cfilter id='a' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0025 0.085' numOctaves='4' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.32 0 0 0 0 0.19 0 0 0 0 0.08 1.3 0 0 0 -0.5'/%3E%3C/filter%3E%3Cfilter id='b' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.03 0.9' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.25 0 0 0 0 0.14 0 0 0 0 0.05 0.9 0 0 0 -0.32'/%3E%3C/filter%3E%3Crect width='1400' height='700' filter='url(%23a)'/%3E%3Crect width='1400' height='700' filter='url(%23b)'/%3E%3C/svg%3E");
-    font-family: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: "Barlow", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
@@ -47,7 +47,7 @@
     -webkit-font-smoothing: antialiased;
     background:
       radial-gradient(110% 80% at 18% 0%, rgba(255,243,222,.42), transparent 60%),
-      radial-gradient(120% 110% at 100% 100%, rgba(70,38,10,.30), transparent 55%),
+      radial-gradient(120% 110% at 100% 100%, rgba(0,0,0,.30), transparent 55%),
       var(--wood),
       linear-gradient(180deg, #D5B68B, #C39D6E);
     background-size: auto, auto, 1400px 700px, auto;
@@ -81,7 +81,7 @@
     background:
       linear-gradient(90deg, rgba(0,0,0,.35) 0%, transparent 9%, transparent 91%, rgba(0,0,0,.35) 100%),
       linear-gradient(90deg, #1C222C 0%, #2A323F 14%, #333C4B 50%, #2A323F 86%, #1C222C 100%);
-    box-shadow: 12px 18px 26px rgba(70,38,10,.30), 3px 6px 8px rgba(70,38,10,.24);
+    box-shadow: 12px 18px 26px rgba(0,0,0,.30), 3px 6px 8px rgba(0,0,0,.24);
   }
   .strap.top { bottom: 380px; height: 820px; border-radius: 104px 104px 10px 10px / 130px 130px 10px 10px; }
   .strap.bottom { top: 380px; height: 300px; border-radius: 10px 10px 16px 16px; }
@@ -98,7 +98,7 @@
   .buckle {
     position: absolute; left: -18px; right: -18px; top: 262px; height: 84px; border-radius: 24px;
     background: linear-gradient(135deg, #E7EAED 0%, #9CA3AB 30%, #D4D8DC 55%, #7E858D 80%, #C3C8CD 100%);
-    box-shadow: 10px 14px 20px rgba(70,38,10,.32), inset 0 0 0 1px rgba(255,255,255,.5);
+    box-shadow: 10px 14px 20px rgba(0,0,0,.32), inset 0 0 0 1px rgba(255,255,255,.5);
   }
   .buckle::before { content: ""; position: absolute; inset: 13px; border-radius: 13px; background: var(--hole); box-shadow: inset 3px 4px 6px rgba(0,0,0,.45); }
   .buckle::after {
@@ -110,7 +110,7 @@
   .lug {
     position: absolute; left: 104px; width: 232px; height: 84px; border-radius: 26px; z-index: 2;
     background: linear-gradient(90deg, #7A8189, #CDD1D6 22%, #9AA1A9 50%, #D7DBDF 78%, #7A8189);
-    box-shadow: 8px 12px 18px rgba(70,38,10,.28);
+    box-shadow: 8px 12px 18px rgba(0,0,0,.28);
   }
   .lug.t { top: -12px; }
   .lug.b { bottom: -12px; }
@@ -120,7 +120,7 @@
       radial-gradient(circle, transparent 60%, rgba(0,0,0,.22) 66%, transparent 70%),
       conic-gradient(from 200deg, #6E757E, #C9CED4, #8A919A, #E6E9EC, #7C838C, #C2C7CC, #6E757E);
     box-shadow:
-      16px 24px 36px rgba(70,38,10,.36), 4px 7px 10px rgba(70,38,10,.28),
+      16px 24px 36px rgba(0,0,0,.36), 4px 7px 10px rgba(0,0,0,.28),
       inset 0 0 0 1.5px rgba(255,255,255,.4), inset 0 0 0 4px rgba(0,0,0,.12);
   }
   .glass { position: absolute; inset: 18px; border-radius: 50%; background: #020304; box-shadow: inset 0 0 0 2px #000, 0 0 0 1px rgba(0,0,0,.45); }
@@ -142,16 +142,16 @@
       linear-gradient(90deg, transparent 84%, var(--heart) 84%, var(--heart) 92%, #8F969E 92%),
       repeating-linear-gradient(180deg, #7D848C 0 2px, #D9DDE1 2px 4px, #A3AAB2 4px 5px);
     background-position: 0 0, 0 var(--cp);
-    box-shadow: 6px 9px 12px rgba(70,38,10,.32), inset 0 0 0 1px rgba(0,0,0,.18);
+    box-shadow: 6px 9px 12px rgba(0,0,0,.32), inset 0 0 0 1px rgba(0,0,0,.18);
   }
   .side-btn {
     left: 423px; top: 319px; --a: 26deg; width: 30px; height: 78px; border-radius: 12px;
     background: linear-gradient(90deg, #7A8189, #DCE0E4 45%, #9DA4AC);
-    box-shadow: 5px 8px 10px rgba(70,38,10,.3), inset 0 0 0 1px rgba(0,0,0,.15);
+    box-shadow: 5px 8px 10px rgba(0,0,0,.3), inset 0 0 0 1px rgba(0,0,0,.15);
     transition: transform .08s;
   }
   .side-btn:active { transform: translate(-50%, -50%) rotate(var(--a)) translateX(-4px); }
-  .crown:focus-visible, .side-btn:focus-visible { outline: 3px solid #4F43C9; outline-offset: 3px; }
+  .crown:focus-visible, .side-btn:focus-visible { outline: 3px solid #62d6ea; outline-offset: 3px; }
 
   /* Vibration on the table */
   @keyframes buzz {
@@ -170,7 +170,7 @@
       radial-gradient(circle at 30% 25%, rgba(255,255,255,.6), transparent 55%),
       repeating-radial-gradient(circle at 50% 50%, rgba(0,0,0,.025) 0 1px, transparent 1px 3px),
       #EFE9E0;
-    box-shadow: 8px 12px 18px rgba(70,38,10,.25), 1px 2px 3px rgba(70,38,10,.2);
+    box-shadow: 8px 12px 18px rgba(0,0,0,.25), 1px 2px 3px rgba(0,0,0,.2);
   }
   .patch::before { content: ""; position: absolute; inset: 9px; border-radius: 36px; border: 1.5px dashed rgba(120,105,85,.35); }
   .patch .mod {
@@ -178,7 +178,7 @@
     background: radial-gradient(circle at 35% 30%, #FFFFFF, #CED4DA 70%, #B3BAC1);
     box-shadow: 2px 4px 6px rgba(0,0,0,.18), inset 0 0 0 1px rgba(0,0,0,.08);
   }
-  .patch .led { position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: #8C87E8; box-shadow: 0 0 8px #8C87E8; animation: led 2.8s ease-in-out infinite; }
+  .patch .led { position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: #62d6ea; box-shadow: 0 0 8px #62d6ea; animation: led 2.8s ease-in-out infinite; }
   @keyframes led { 50% { opacity: .25; } }
   .patch .lbl { position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; font-size: 9px; font-weight: 800; letter-spacing: .14em; color: #9A8E7C; }
 
@@ -188,7 +188,7 @@
     left: calc(50% + 220px * var(--k) + 70px); top: 50%;
     transform: translateY(-50%) rotate(-1.6deg);
     background: #FBFAF6; border-radius: 6px; padding: 28px 24px 22px;
-    box-shadow: 10px 16px 28px rgba(70,38,10,.28), 1px 2px 4px rgba(70,38,10,.2);
+    box-shadow: 10px 16px 28px rgba(0,0,0,.28), 1px 2px 4px rgba(0,0,0,.2);
     font-size: 15px; line-height: 1.45;
   }
   body.narrow .card { position: relative; left: auto; top: auto; transform: rotate(-1deg); margin: -48px auto 56px; width: min(340px, calc(100% - 40px)); }
@@ -204,7 +204,7 @@
   .seg button[aria-pressed="true"] { background: #fff; color: #18212A; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
   .card .reset { margin-top: 16px; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 2px solid #D9D6CC; background: transparent; font-weight: 700; font-size: 14px; }
   .card .foot { margin: 14px 0 0; font-size: 12px; color: #7A8490; }
-  .card button:focus-visible { outline: 3px solid #4F43C9; outline-offset: 2px; }
+  .card button:focus-visible { outline: 3px solid #62d6ea; outline-offset: 2px; }
 
   /* =========================================================
      Watch display (384 × 384, round)
@@ -433,6 +433,73 @@
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   }
+
+  /* =========================================================
+     VesselWatch theme: same fonts, palette and panel shapes as the main app
+     ========================================================= */
+  body {
+    color: var(--ink);
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(98,214,234,.14), transparent 60%),
+      linear-gradient(rgba(98,214,234,.05) 1px, transparent 1px) 0 0 / 48px 48px,
+      linear-gradient(90deg, rgba(98,214,234,.05) 1px, transparent 1px) 0 0 / 48px 48px,
+      #08121c;
+  }
+  .f-time, .ctime text, .st, .q, .sec, .card .kicker, .card h1, .card h2, .card li b,
+  .seg button, .card .reset, .pbtn, .opt, .pill, .f-st span, .comp, .patch .lbl,
+  .tool .nm, .prio b, .dtop b, .dv, .wl, .wk b, .notif h3, .btxt b, .timer, .vstat, .tok {
+    font-family: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  }
+  .f-time { font-weight: 600; letter-spacing: 0; }
+  .ctime text { font-family: "Chakra Petch", sans-serif !important; }
+  .sec, .card .kicker, .card h2 { text-transform: none; letter-spacing: .02em; }
+
+  /* demo card: an angled VesselWatch panel instead of a paper note */
+  .card {
+    transform: translateY(-50%);
+    background: #0e1d2b; color: var(--ink); border: 1px solid #23415a; border-radius: 0;
+    clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+    box-shadow: none;
+  }
+  .tape { display: none; }
+  .card .kicker { color: #62d6ea; font-weight: 600; font-size: 13px; }
+  .card h1 { font-weight: 600; letter-spacing: .02em; }
+  .card h2 { color: #87a1b1; font-weight: 600; }
+  .card li { color: #b9ccd7; }
+  .card li b { color: #d8e7ef; font-weight: 600; }
+  .seg { background: #132638; border-radius: 0; border: 1px solid #23415a; padding: 3px; }
+  .seg button { border-radius: 0; color: #87a1b1; font-weight: 600; }
+  .seg button[aria-pressed="true"] { background: #0e1d2b; color: #d8e7ef; box-shadow: inset 0 -2px 0 #62d6ea; }
+  .card .reset {
+    border-radius: 0; border: 1px solid #23415a; color: #d8e7ef; font-weight: 600;
+    clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px);
+  }
+  .card .reset:hover { border-color: #62d6ea; }
+  .card .foot { color: #87a1b1; }
+
+  /* sweat patch: dark hardware with a cyan status light */
+  body.has-patch .patch {
+    background:
+      radial-gradient(circle at 30% 25%, rgba(98,214,234,.10), transparent 55%),
+      repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.03) 0 1px, transparent 1px 3px),
+      #132638;
+    border: 1px solid #23415a;
+    box-shadow: 8px 12px 18px rgba(0,0,0,.45), 0 0 24px rgba(98,214,234,.08);
+  }
+  .patch .lbl { color: #87a1b1; letter-spacing: .06em; font-weight: 600; }
+  .patch::before { border-color: rgba(98,214,234,.25) !important; }
+
+  /* watch: gunmetal case with a faint cyan rim, like the console */
+  .case {
+    background:
+      radial-gradient(circle, transparent 60%, rgba(0,0,0,.3) 66%, transparent 70%),
+      conic-gradient(from 200deg, #3a4656, #7d8a99, #4a5666, #9aa7b5, #44505f, #7a8796, #3a4656);
+    box-shadow:
+      16px 24px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(98,214,234,.18), 0 0 40px rgba(98,214,234,.10),
+      inset 0 0 0 1.5px rgba(255,255,255,.25), inset 0 0 0 4px rgba(0,0,0,.2);
+  }
+  .glass { background: #050d14; }
+  .display { background: #050d14; }
 </style>
 </head>
 <body class="wide">
@@ -557,7 +624,7 @@ const METRICS = [
 ];
 const Q = [
   { k: 'rest', q: 'How well did you rest?', hint: 'How you felt on waking.', opts: ['Well', 'So-so', 'Badly'] },
-  { k: 'mood', q: 'How is your mood?', hint: 'No right answer.', opts: ['Very good', 'Good', 'So-so', 'Low', 'Very low'], dots: ['#7FBF9A', '#A8C690', '#D8BE7E', '#93A3CF', '#8A8FCB'] },
+  { k: 'mood', q: 'How is your mood?', hint: 'No right answer.', opts: ['Very good', 'Good', 'So-so', 'Low', 'Very low'], dots: ['#5fcf8e', '#9ad9b0', '#f0a63a', '#62a8ea', '#b7a6ff'] },
   { k: 'tension', q: 'How much tension?', hint: 'In your body or head.', opts: ['None', 'Some', 'A lot'] },
   { k: 'body', q: 'Anything in your body?', hint: 'Pick all that apply.', multi: true, opts: ['Heavy head', 'Puffy face', 'Sore or swollen neck', 'None of these'] },
 ];
