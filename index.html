@@ -60,6 +60,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 .scn[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:var(--bg)}
 .scn[aria-pressed="true"] i{box-shadow:0 0 0 2px var(--bg)}
 .scn:hover{border-color:var(--amber)}
+.demo .sep{width:1px;align-self:stretch;background:color-mix(in srgb,var(--amber) 45%,transparent);margin:0 .2rem}
+.demo .grp{font-family:var(--display);font-size:.78rem;color:var(--muted)}
+.scn.proto i{border-radius:2px;background:var(--lav,#b7a6ff)}
+.protoview{position:relative;z-index:1;margin:1rem 16px 2rem;display:flex;flex-direction:column;gap:.45rem}
+.protoview[hidden],.stage[hidden]{display:none}
+.protoview iframe{width:100%;height:calc(100vh - 12rem);min-height:560px;border:1px solid var(--line);background:#000}
 .col{display:flex;flex-direction:column;gap:.45rem;min-width:0}
 .layer{margin:0;font-family:var(--display);font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:.5rem}
 .layer b{color:var(--text);font-weight:600}
@@ -329,7 +335,14 @@ body.listening .holo::after{content:"";position:absolute;width:210px;height:210p
   <button class="scn" data-s="investigate" aria-pressed="false"><i></i>Needs a closer look</button>
   <button class="scn" data-s="red" aria-pressed="false"><i></i>Red alert</button>
   <button class="scn" data-s="free" aria-pressed="true"><i></i>Live check-in</button>
+  <span class="sep" aria-hidden="true"></span>
+  <span class="grp">Other prototypes</span>
+  <span id="protoBtns" style="display:contents"></span>
 </div>
+<section class="protoview" id="protoView" hidden aria-label="Prototype preview">
+  <p class="layer" id="protoLabel"><b>Prototype</b></p>
+  <iframe id="protoFrame" title="Prototype preview" allow="autoplay"></iframe>
+</section>
 
 <div class="stage">
   <div class="col">
@@ -852,7 +865,25 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
     render(tx(SCENARIOS[k].opener, k==="red"?"":"Cross-checking mind and body against your baseline."));
     runAgent();
   }
-  document.querySelectorAll(".scn").forEach(b=>b.onclick=()=>{ voiceFlow=false; awaiting=null; runScenario(b.dataset.s); });
+  /* ---------- other prototypes (HTML pages in /prototypes) ----------
+     To add one: drop the file in prototypes/ and add a line here. */
+  const PROTOTYPES = [
+    { id:"watch", label:"Smartwatch", file:"prototypes/watch.html", caption:"<b>Smartwatch companion</b> wrist view with its own Normal, Stress and Alert states" }
+  ];
+  $("protoBtns").innerHTML = PROTOTYPES.map(p=>`<button class="scn proto" data-proto="${p.id}" aria-pressed="false"><i></i>${p.label}</button>`).join("");
+  function showPrototype(id){
+    const p = PROTOTYPES.find(x=>x.id===id); if(!p) return;
+    endFlow(); window.speechSynthesis?.cancel(); tts?.stop?.().catch(()=>{});
+    document.querySelectorAll(".scn").forEach(b=>b.setAttribute("aria-pressed", b.dataset.proto===id));
+    $("protoLabel").innerHTML = p.caption;
+    if ($("protoFrame").getAttribute("src")!==p.file) $("protoFrame").setAttribute("src", p.file);
+    $("protoView").hidden=false; document.querySelector(".stage").hidden=true;
+  }
+  function hidePrototype(){ $("protoView").hidden=true; document.querySelector(".stage").hidden=false; }
+  document.querySelectorAll(".scn").forEach(b=>b.onclick=()=>{
+    if (b.dataset.proto){ showPrototype(b.dataset.proto); return; }
+    hidePrototype(); voiceFlow=false; awaiting=null; runScenario(b.dataset.s);
+  });
 
   /* ---------- talking to Lumi ---------- */
   function parseSpeech(t){
@@ -956,7 +987,7 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
 
   /* --- voice check-in --- */
   function startVoiceCheckin(){
-    endFlow(); voiceFlow=true;
+    hidePrototype(); endFlow(); voiceFlow=true;
     document.querySelectorAll(".scn").forEach(b=>b.setAttribute("aria-pressed", b.dataset.s==="free"));
     tab("sToday"); keys(null);
     startFree();
@@ -1001,7 +1032,7 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
   ];
   const RED=["chest","breath","severeHead","neuro"];
   function startBodyScan(){
-    endFlow(); voiceFlow=true;
+    hidePrototype(); endFlow(); voiceFlow=true;
     document.querySelectorAll(".scn").forEach(b=>b.setAttribute("aria-pressed", b.dataset.s==="free"));
     S=freshState(); S.sleepH=BASE_SLEEP; $("dDay").textContent=S.day; resetPanel(); setRest(""); M=[]; keys(null);
     renderTimeline(agent.planDay(toSignals(S)));

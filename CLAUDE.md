@@ -40,6 +40,7 @@ A NASA Space Apps 2026 hackathon prototype. VesselWatch is an astronaut health c
 | `agent/scenarios.json` | 11 test scenarios, with expected severity, rules and missions |
 | `agent/test.mjs`, `agent/test_agent.py` | Test runners; both must print "All passed" |
 | `agent/README.md` | Agent docs: signals, rule format, evidence levels, reuse |
+| `prototypes/` | Other team prototypes shown from Demo controls → "Other prototypes" (e.g. `watch.html`, the smartwatch companion). To add one: put the file here and add a line to `PROTOTYPES` in `index.html` |
 
 Run locally: `python3 -m http.server 8000` (the app fetches the playbook, so `file://` won't work). Test: `node agent/test.mjs && python3 agent/test_agent.py`.
 
