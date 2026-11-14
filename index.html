@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VesselWatch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#08121c; --panel:#0e1d2b; --panel2:#132638; --line:#23415a;
+  --text:#d8e7ef; --muted:#87a1b1; --cyan:#62d6ea; --amber:#f0a63a; --crimson:#ff5a72; --ok:#5fcf8e;
+  --holo1:#bff6ff; --holo2:#62d6ea; --holo3:#2a7fd4;
+  --display:"Chakra Petch","Segoe UI",system-ui,sans-serif;
+  --body:"Barlow","Segoe UI",system-ui,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ color-scheme: dark; } }
+:root[data-theme="dark"]{ color-scheme: dark; }
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font:400 16px/1.5 var(--body);overflow-x:hidden;
+  background-image:radial-gradient(ellipse at 50% -10%, color-mix(in srgb,var(--cyan) 12%,transparent), transparent 60%);}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--bg)}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+#stars{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+.grid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(color-mix(in srgb,var(--cyan) 6%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--cyan) 6%,transparent) 1px,transparent 1px);
+  background-size:48px 48px;mask:radial-gradient(ellipse at center,#000 30%,transparent 80%)}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;display:flex;align-items:center;gap:.75rem 1rem;flex-wrap:wrap;padding:.55rem 16px;
+  border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px)}
+.brand{font-family:var(--display);font-weight:700;letter-spacing:.06em;font-size:1.1rem}
+.brand span{color:var(--crimson)}
+
+.panel{background:var(--panel);border:1px solid var(--line);position:relative;
+  clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.6rem 1rem;border-bottom:1px solid var(--line);
+  font-family:var(--display);font-size:.95rem;color:var(--muted)}
+.tag{display:inline-flex;align-items:center;font-size:.72rem;font-weight:600;padding:.1rem .5rem;white-space:nowrap}
+.tag-real{border:1px solid var(--cyan);color:var(--cyan)}
+.tag-sim{border:1px dashed var(--amber);color:var(--amber);
+  background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--amber) 14%,transparent) 0 4px,transparent 4px 9px)}
+
+/* scenario strip */
+.demo{position:relative;z-index:1;margin:1rem 16px 0;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:.6rem 1rem;padding:.7rem 1rem;
+  border:1px dashed var(--amber);background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--amber) 9%,transparent) 0 6px,transparent 6px 14px),color-mix(in srgb,var(--bg) 85%,transparent)}
+.demo-id{display:flex;flex-direction:column;line-height:1.25;margin-right:.4rem}
+.demo-id b{font-family:var(--display);font-weight:700;color:var(--amber);font-size:.95rem;display:flex;align-items:center;gap:.4rem}
+.demo-id span{font-size:.78rem;color:var(--muted)}
+.scn{background:var(--bg);border:1px solid color-mix(in srgb,var(--amber) 55%,transparent);color:var(--text);padding:.45rem .9rem;font-family:var(--display);font-weight:600;display:flex;align-items:center;gap:.5rem;border-radius:999px}
+.scn i{width:9px;height:9px;border-radius:50%}
+.scn[data-s="normal"] i{background:var(--ok)}.scn[data-s="investigate"] i{background:var(--amber)}.scn[data-s="red"] i{background:var(--crimson)}.scn[data-s="free"] i{background:var(--cyan)}
+.scn[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:var(--bg)}
+.scn[aria-pressed="true"] i{box-shadow:0 0 0 2px var(--bg)}
+.scn:hover{border-color:var(--amber)}
+.col{display:flex;flex-direction:column;gap:.45rem;min-width:0}
+.layer{margin:0;font-family:var(--display);font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:.5rem}
+.layer b{color:var(--text);font-weight:600}
+.layer::before{content:"";width:18px;height:1px;background:var(--line)}
+
+.stage{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,420px) minmax(0,520px);gap:1.5rem;justify-content:center;align-items:start;padding:1rem 16px 3rem}
+@media (max-width:980px){.stage{grid-template-columns:minmax(0,440px)}}
+
+/* device */
+.device{height:min(800px,calc(100vh - 11rem));min-height:620px;display:flex;flex-direction:column;transition:box-shadow .6s}
+body.sev3 .device{animation:redpulse 1.6s ease-in-out infinite}
+@keyframes redpulse{0%,100%{box-shadow:0 0 0 1px color-mix(in srgb,var(--crimson) 40%,transparent),0 0 30px color-mix(in srgb,var(--crimson) 15%,transparent)}50%{box-shadow:0 0 0 2px var(--crimson),0 0 60px color-mix(in srgb,var(--crimson) 35%,transparent)}}
+@media (max-width:480px){.stage{padding:.5rem 0 2rem}.device{height:auto;min-height:85svh}}
+.dev-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.7rem 1rem;border-bottom:1px solid var(--line);font-size:.85rem;color:var(--muted)}
+.dev-head b{font-family:var(--display);font-weight:600;color:var(--text);font-size:1rem}
+.alertbar{display:none;padding:.5rem 1rem;background:color-mix(in srgb,var(--crimson) 18%,var(--panel));border-bottom:1px solid var(--crimson);font-family:var(--display);font-size:.9rem;color:#ffd5dc}
+body.sev3 .alertbar{display:block}
+.screen{flex:1;overflow-y:auto;padding:.5rem 1rem 1rem;display:none;flex-direction:column}
+.screen.on{display:flex}
+
+/* Lumi */
+.holo{display:grid;place-items:center;position:sticky;top:-8px;z-index:3;height:200px;margin:0 -1rem;padding-top:.1rem;background:linear-gradient(var(--panel) 82%,transparent);transition:height .35s ease}
+.holo .ring,.holo .ticks,.holo .beam,.holo .emitter,.holo .lumi{transition:transform .35s ease}
+.holo.compact{height:118px}
+.holo.compact .lumi,.holo.compact .ring,.holo.compact .ticks{transform:scale(.58)}
+.holo.compact .ring,.holo.compact .ticks{transform-origin:50% 0;top:2px}
+.holo.compact .lumi{transform-origin:50% 0;margin-top:-30px}
+.holo.compact .beam,.holo.compact .emitter{transform:scale(.6);opacity:.5}
+.holo.compact .lumi-say{top:auto;bottom:10px;right:16px}
+.ring{position:absolute;width:180px;height:180px;border-radius:50%;top:4px;
+  background:conic-gradient(var(--cyan) calc(var(--p)*1%), color-mix(in srgb,var(--cyan) 12%,transparent) 0);
+  mask:radial-gradient(circle,transparent 81px,#000 82px,#000 86px,transparent 87px)}
+.ticks{position:absolute;width:196px;height:196px;border-radius:50%;top:-4px;
+  background:repeating-conic-gradient(color-mix(in srgb,var(--cyan) 45%,transparent) 0 1.2deg,transparent 1.2deg 10deg);
+  mask:radial-gradient(circle,transparent 93px,#000 94px);animation:spin 40s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.emitter{position:absolute;bottom:0;width:120px;height:18px;border-radius:50%;background:radial-gradient(ellipse,color-mix(in srgb,var(--cyan) 70%,transparent),transparent 70%)}
+.beam{position:absolute;bottom:8px;width:150px;height:110px;background:linear-gradient(to top,color-mix(in srgb,var(--cyan) 22%,transparent),transparent);clip-path:polygon(35% 100%,65% 100%,100% 0,0 0);opacity:.6}
+.lumi{width:150px;height:150px;position:relative;z-index:2;cursor:pointer;overflow:visible;-webkit-tap-highlight-color:transparent}
+.lumi:focus-visible{outline:2px solid var(--cyan);outline-offset:4px;border-radius:50%}
+.lumi.concerned{--holo1:#ffe7bf;--holo2:#f0a63a;--holo3:#b86b1c}
+.lumi.alert{--holo1:#ffe0e6;--holo2:#ff7d92;--holo3:#b02a46}
+.lumi .bob{animation:float 4.5s ease-in-out infinite;transform-origin:100px 150px}
+.lumi.happy .bob,.lumi.pet .bob{animation:bounce .7s ease 2}
+.lumi.alert .bob{animation:float 2.2s ease-in-out infinite}
+.lumi .scan{animation:flick 7s steps(1) infinite}
+.lumi .earL{transform-origin:76px 72px;transition:transform .45s cubic-bezier(.3,1.5,.5,1)}
+.lumi .earR{transform-origin:124px 72px;transition:transform .45s cubic-bezier(.3,1.5,.5,1)}
+.lumi.concerned .earL{transform:rotate(-20deg)}.lumi.concerned .earR{transform:rotate(20deg)}
+.lumi.alert .earL{transform:rotate(-34deg) scaleY(.85)}.lumi.alert .earR{transform:rotate(34deg) scaleY(.85)}
+.lumi.listening .earL{transform:rotate(6deg) scale(1.1)}.lumi.listening .earR{transform:rotate(-6deg) scale(1.1)}
+.lumi.thinking .earR{animation:twitch 1.2s ease-in-out infinite}
+.lumi .tail{transform-origin:132px 158px;animation:wag 2.6s ease-in-out infinite}
+.lumi.happy .tail,.lumi.pet .tail{animation:wag .35s ease-in-out infinite}
+.lumi.concerned .tail{animation:none;transform:rotate(38deg)}
+.lumi.alert .tail{animation:none;transform:rotate(48deg)}
+.lumi .tip{animation:glow 2.4s ease-in-out infinite}
+.lumi.thinking .tip,.lumi.listening .tip{animation:glow .4s ease-in-out infinite}
+.lumi .look{transform:translate(var(--lx,0px),var(--ly,0px));transition:transform .15s}
+.lumi.thinking .look{animation:look 1.4s ease-in-out infinite}
+.lumi .blink{animation:blink 5s infinite;transform-origin:100px 108px}
+.lumi .eyes-happy,.lumi .eyes-worried,.lumi .eyes-alert,.lumi .mouth-happy,.lumi .mouth-worried,.lumi .sweat,.lumi .blush{display:none}
+.lumi.happy .eyes-open,.lumi.pet .eyes-open,.lumi.concerned .eyes-open,.lumi.alert .eyes-open{display:none}
+.lumi.happy .eyes-happy,.lumi.pet .eyes-happy{display:inline}
+.lumi.happy .mouth-happy,.lumi.pet .mouth-happy,.lumi.happy .blush,.lumi.pet .blush{display:inline}
+.lumi.happy .mouth-neutral,.lumi.pet .mouth-neutral,.lumi.concerned .mouth-neutral,.lumi.alert .mouth-neutral{display:none}
+.lumi.concerned:not(.pet) .eyes-worried{display:inline}
+.lumi.alert:not(.pet) .eyes-alert{display:inline}
+.lumi.concerned:not(.pet) .mouth-worried,.lumi.alert:not(.pet) .mouth-worried{display:inline}
+.lumi.concerned:not(.pet) .sweat,.lumi.alert:not(.pet) .sweat{display:inline;animation:drip 2.4s ease-in infinite}
+.lumi.pet.concerned .eyes-happy,.lumi.pet.alert .eyes-happy{display:inline}
+@keyframes float{0%,100%{transform:translateY(0) scale(1,1)}50%{transform:translateY(-6px) scale(1.02,.98)}}
+@keyframes blink{0%,46%,50%,100%{transform:scaleY(1)}48%{transform:scaleY(.1)}}
+@keyframes look{0%,100%{transform:translateX(-5px)}50%{transform:translateX(5px)}}
+@keyframes bounce{0%,100%{transform:translateY(0) scale(1)}35%{transform:translateY(-14px) scale(.95,1.06)}70%{transform:translateY(0) scale(1.07,.93)}}
+@keyframes wag{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(12deg)}}
+@keyframes twitch{0%,70%,100%{transform:rotate(0)}80%{transform:rotate(-14deg)}90%{transform:rotate(4deg)}}
+@keyframes drip{0%{transform:translateY(0);opacity:0}20%{opacity:1}100%{transform:translateY(10px);opacity:0}}
+@keyframes glow{0%,100%{opacity:.5}50%{opacity:1}}
+@keyframes flick{0%,96%,100%{opacity:1}97%{opacity:.55}98%{opacity:.9}}
+.float-heart{position:absolute;top:22%;font-size:1.5rem;color:#ff9fb3;pointer-events:none;animation:xp 1.4s ease-out forwards;text-shadow:0 0 10px #ff9fb3}
+.lumi-say{position:absolute;top:2px;right:0;max-width:150px;background:var(--panel2);border:1px solid var(--cyan);padding:.3rem .55rem;font-family:var(--display);font-size:.8rem;
+  clip-path:polygon(8px 0,100% 0,100% 100%,0 100%,0 8px);animation:pop .25s ease;pointer-events:none;z-index:3}
+.float-xp{position:absolute;top:30%;font-family:var(--display);font-weight:700;color:var(--cyan);font-size:1.3rem;pointer-events:none;animation:xp 1.6s ease-out forwards;text-shadow:0 0 12px var(--cyan)}
+@keyframes xp{from{transform:translateY(10px);opacity:0}20%{opacity:1}to{transform:translateY(-50px);opacity:0}}
+.stats{display:flex;justify-content:center;gap:1.25rem;font-size:.8rem;color:var(--muted)}
+.stats b{font-family:var(--display);color:var(--text);font-size:1rem;font-weight:600;margin-right:.2rem}
+
+/* transmissions */
+.tx{margin-top:.75rem;background:var(--panel2);border-left:3px solid var(--cyan);padding:.7rem .9rem;clip-path:polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%);animation:pop .3s ease}
+.tx .from{font-family:var(--display);font-size:.8rem;color:var(--cyan);display:flex;gap:.5rem;align-items:center}
+.tx .from::before{content:"";width:6px;height:6px;background:var(--cyan);transform:rotate(45deg)}
+.tx .msg{font-family:var(--display);font-weight:500;font-size:1.08rem;line-height:1.35;margin-top:.2rem;min-height:1.35em}
+.tx small{display:block;font-size:.87rem;color:var(--muted);margin-top:.35rem}
+.tx.amber{border-left-color:var(--amber)}.tx.amber .from{color:var(--amber)}.tx.amber .from::before{background:var(--amber)}
+.tx.red{border-left-color:var(--crimson)}.tx.red .from{color:var(--crimson)}.tx.red .from::before{background:var(--crimson)}
+.tx.you{border-left-color:var(--muted);background:var(--panel)}.tx.you .from{color:var(--muted)}.tx.you .from::before{background:var(--muted)}
+.tx.you .msg{font-family:var(--body);font-weight:400;font-size:1rem}
+@keyframes pop{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
+.caret::after{content:"▍";color:var(--cyan);animation:glow .7s steps(1) infinite}
+
+.chips{display:grid;gap:.45rem;margin-top:.75rem;animation:pop .3s .25s both}
+.chips.row{grid-template-columns:repeat(3,1fr)}
+.chip{background:var(--panel);border:1px solid var(--line);padding:.6rem .7rem;font-weight:600;font-size:.95rem;text-align:left;display:flex;align-items:center;gap:.55rem;
+  clip-path:polygon(8px 0,100% 0,100% 100%,0 100%,0 8px);transition:border-color .15s,background .15s}
+.chip kbd{font-family:var(--display);font-size:.72rem;color:var(--muted);border:1px solid var(--line);padding:0 .3rem;min-width:1.3rem;text-align:center}
+.chip:hover{border-color:var(--cyan)}
+.chip[aria-pressed="true"]{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 20%,var(--panel));box-shadow:inset 0 -2px 0 var(--cyan)}
+.chips.row .chip{flex-direction:column;justify-content:center;text-align:center;gap:.2rem;padding:.65rem .3rem}
+.chip .em{font-size:1.4rem;line-height:1}
+.go{margin-top:.75rem;align-self:flex-start;background:var(--cyan);color:var(--bg);border:0;padding:.6rem 1.2rem;font-family:var(--display);font-weight:600;
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
+.go.alt{background:none;color:var(--text);box-shadow:inset 0 0 0 1px var(--line)}
+.go:disabled{opacity:.6;cursor:default}
+.prog{display:flex;gap:4px;margin-top:.75rem}
+.prog i{flex:1;height:3px;background:var(--line)}
+.prog i.on{background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
+
+.card{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--ok);padding:.7rem .9rem;margin-top:.55rem;animation:pop .35s both;
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%)}
+.card.l2{border-left-color:var(--amber)}.card.l3{border-left-color:var(--crimson)}
+.card .top2{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem}
+.card h3{margin:0;font-family:var(--display);font-weight:600;font-size:1rem}
+.card .who{font-family:var(--display);font-size:.75rem;white-space:nowrap;color:var(--ok)}
+.card.l2 .who{color:var(--amber)}.card.l3 .who{color:var(--crimson)}
+
+/* voice bar */
+.voicebar{display:flex;gap:.5rem;align-items:center;padding:.6rem 1rem;border-top:1px solid var(--line);background:var(--panel)}
+.mic{width:46px;height:46px;flex:none;border-radius:50%;border:1px solid var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,var(--panel));display:grid;place-items:center;font-size:1.2rem}
+.mic.on{background:var(--crimson);border-color:var(--crimson);animation:micpulse 1.2s ease-in-out infinite}
+@keyframes micpulse{50%{box-shadow:0 0 0 8px color-mix(in srgb,var(--crimson) 25%,transparent)}}
+.mic[hidden]{display:none}
+.say-input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);color:var(--text);padding:.6rem .7rem;font:inherit;font-size:.95rem}
+.say-input::placeholder{color:var(--muted)}
+.send{background:none;border:1px solid var(--line);padding:.55rem .8rem;font-family:var(--display)}
+.partial{font-size:.85rem;color:var(--muted);padding:0 1rem .4rem;background:var(--panel);min-height:0}
+
+/* body scan */
+.scanwrap{position:relative;display:grid;place-items:center;margin-top:.4rem;background:#050d14;border:1px solid var(--line);padding:.5rem 0;overflow:hidden}
+.scanwrap::after{content:"";position:absolute;left:0;right:0;height:60px;top:-60px;background:linear-gradient(to bottom,transparent,color-mix(in srgb,var(--cyan) 18%,transparent));animation:sweep 3.5s linear infinite;pointer-events:none}
+@keyframes sweep{to{top:100%}}
+.silhouette{fill:color-mix(in srgb,var(--cyan) 10%,transparent);stroke:color-mix(in srgb,var(--cyan) 55%,transparent);stroke-width:1.2}
+.zone{cursor:pointer;transition:fill .6s;stroke-width:1.5}
+.zone[data-s="ok"]{fill:color-mix(in srgb,var(--ok) 45%,transparent);stroke:var(--ok)}
+.zone[data-s="watch"]{fill:color-mix(in srgb,var(--amber) 60%,transparent);stroke:var(--amber);filter:drop-shadow(0 0 8px var(--amber));animation:pulse 1.8s ease-in-out infinite}
+.zone[data-s="alert"]{fill:color-mix(in srgb,var(--crimson) 65%,transparent);stroke:var(--crimson);filter:drop-shadow(0 0 10px var(--crimson));animation:pulse 1s ease-in-out infinite}
+.zone[data-s="idle"]{fill:color-mix(in srgb,var(--muted) 18%,transparent);stroke:color-mix(in srgb,var(--muted) 40%,transparent);stroke-dasharray:3 3}
+@keyframes pulse{50%{opacity:.55}}
+.zone:focus-visible{outline:none;stroke:#fff;stroke-width:3}
+.zlabel{font-family:var(--display);font-size:9px;fill:var(--muted)}
+.zone-info{margin-top:.6rem;padding:.8rem .9rem;background:var(--panel2);border-left:3px solid var(--line);min-height:90px}
+.zone-info.watch{border-left-color:var(--amber)}.zone-info.ok{border-left-color:var(--ok)}.zone-info.alert{border-left-color:var(--crimson)}
+.zone-info h3{margin:0 0 .2rem;font-family:var(--display);font-weight:600;font-size:1rem}
+.zone-info p{margin:0;font-size:.9rem;color:var(--muted)}
+
+
+.tabs{display:flex;border-top:1px solid var(--line)}
+.tabs button{flex:1;background:none;border:0;padding:.6rem .3rem .7rem;font-family:var(--display);font-size:.88rem;color:var(--muted);display:flex;flex-direction:column;align-items:center}
+.tabs button span{font-size:1.05rem}
+.tabs button[aria-current="true"]{color:var(--text);background:var(--panel2);box-shadow:inset 0 2px 0 var(--cyan)}
+
+/* agent panel */
+.agent .body{padding:.9rem 1rem}
+.agent-id{display:flex;gap:.8rem;align-items:center}
+.agent-id .badge{width:44px;height:44px;flex:none;display:grid;place-items:center;font-family:var(--display);font-weight:700;color:var(--bg);background:var(--cyan);
+  clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.agent-id h2{margin:0;font-family:var(--display);font-weight:600;font-size:1.15rem}
+.agent-id p{margin:0;font-size:.85rem;color:var(--muted)}
+.sec{margin-top:1rem}
+.sec h3{margin:0 0 .45rem;font-family:var(--display);font-weight:600;font-size:.95rem;color:var(--muted)}
+.inputs{display:grid;grid-template-columns:auto 1fr;gap:.25rem .9rem;font-size:.9rem;margin:0}
+.inputs dt{color:var(--muted)}
+.inputs dd{margin:0}
+.inputs dd.flag{color:var(--amber)}.inputs dd.flag3{color:var(--crimson)}
+.verdict{display:flex;align-items:center;gap:.9rem;padding:.8rem .9rem;border:1px solid var(--line);background:var(--panel2);transition:all .4s}
+.verdict .sev{font-family:var(--display);font-weight:700;font-size:1.6rem;line-height:1;min-width:5.5rem}
+.verdict p{margin:0;font-size:.92rem}
+.verdict[data-sev="0"] .sev,.verdict[data-sev="1"] .sev{color:var(--ok)}
+.verdict[data-sev="2"]{border-color:var(--amber)}.verdict[data-sev="2"] .sev{color:var(--amber)}
+.verdict[data-sev="3"]{border-color:var(--crimson);background:color-mix(in srgb,var(--crimson) 10%,var(--panel2))}.verdict[data-sev="3"] .sev{color:var(--crimson)}
+.checked{font-size:.82rem;color:var(--muted);margin:.4rem 0 0}
+.rule{border:1px solid var(--line);border-left:3px solid var(--ok);padding:.6rem .8rem;margin-top:.45rem;animation:pop .35s both}
+.rule[data-sev="2"]{border-left-color:var(--amber)}.rule[data-sev="3"]{border-left-color:var(--crimson)}
+.rule .rh{display:flex;justify-content:space-between;gap:.5rem;align-items:baseline}
+.rule .rid{font-family:var(--display);font-size:.75rem;color:var(--muted)}
+.rule h4{margin:0;font-family:var(--display);font-weight:600;font-size:.95rem}
+.rule p{margin:.2rem 0 0;font-size:.87rem;color:var(--muted)}
+.rule .ev{font-size:.78rem;color:var(--cyan);margin-top:.3rem}
+.acts{list-style:none;margin:0;padding:0;display:grid;gap:.35rem}
+.acts li{display:grid;grid-template-columns:1fr auto;gap:.6rem;font-size:.9rem;padding:.45rem .6rem;background:var(--panel2);border-left:3px solid var(--ok)}
+.acts li.l2{border-left-color:var(--amber)}.acts li.l3{border-left-color:var(--crimson)}
+.acts li span{font-family:var(--display);font-size:.75rem;color:var(--muted);white-space:nowrap;align-self:center}
+details.playbook{margin-top:1rem;font-size:.87rem}
+details.playbook summary{cursor:pointer;font-family:var(--display);color:var(--cyan)}
+.pb{margin:.5rem 0 0;padding:0;list-style:none;display:grid;gap:.3rem}
+.pb li{display:grid;grid-template-columns:3.4rem 1fr;gap:.5rem;color:var(--muted)}
+.pb li b{font-family:var(--display);font-weight:600;color:var(--text)}
+.pb li.hit b{color:var(--cyan)}
+.caveat{font-size:.8rem;color:var(--muted);margin:.8rem 0 0;border-top:1px solid var(--line);padding-top:.6rem}
+/* mission timeline */
+.timeline{padding:.55rem 1rem .5rem;border-bottom:1px solid var(--line)}
+.tl-track{position:relative;height:18px;margin:0 8px}
+.tl-track::before{content:"";position:absolute;left:0;right:0;top:8px;height:2px;background:var(--line)}
+.tl-fill{position:absolute;left:0;top:8px;height:2px;width:0;background:var(--cyan);box-shadow:0 0 6px var(--cyan);transition:width 1.4s cubic-bezier(.2,.8,.2,1)}
+.tl-pt{position:absolute;top:4px;width:11px;height:11px;padding:0;transform:translateX(-50%) rotate(45deg);background:var(--panel);border:1px solid var(--muted);cursor:pointer}
+.tl-pt.done{background:var(--cyan);border-color:var(--cyan)}
+.tl-pt.today{background:var(--amber);border-color:var(--amber)}
+.tl-pt.next{border-color:var(--amber);box-shadow:0 0 8px var(--amber);animation:pulse 1.8s ease-in-out infinite}
+.tl-you{position:absolute;top:0;left:0;width:18px;height:18px;transform:translateX(-50%);border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,var(--holo1) 0 25%,var(--cyan) 45%,transparent 70%);transition:left 1.4s cubic-bezier(.2,.8,.2,1)}
+.tl-cap{display:flex;justify-content:space-between;gap:.5rem;font-size:.8rem;color:var(--muted);margin-top:.2rem}
+.tl-cap b{color:var(--text);font-family:var(--display);font-weight:600}
+
+/* daily missions */
+.missions{margin-top:.8rem;border:1px solid var(--line);background:var(--panel);clip-path:polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%)}
+.m-head{display:flex;justify-content:space-between;align-items:center;padding:.55rem .8rem;border-bottom:1px solid var(--line);font-family:var(--display);font-weight:600}
+.m-count{color:var(--cyan)}
+.mission{display:grid;grid-template-columns:auto 1fr auto;gap:.15rem .75rem;align-items:center;padding:.6rem .8rem;border-bottom:1px solid color-mix(in srgb,var(--line) 60%,transparent);animation:drop .45s both}
+@keyframes drop{from{transform:translateY(-14px);opacity:0}to{transform:none;opacity:1}}
+.mission .mi{width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--line);background:var(--panel2);transform:rotate(45deg);transition:background .4s,border-color .4s}
+.mission .mi span{transform:rotate(-45deg);font-size:.85rem}
+.mission h4{margin:0;font-family:var(--display);font-weight:600;font-size:.95rem}
+.mission .sub{font-size:.8rem;color:var(--muted)}
+.mbtn{background:none;border:1px solid var(--cyan);color:var(--cyan);font-family:var(--display);font-size:.82rem;padding:.3rem .65rem;clip-path:polygon(6px 0,100% 0,100% 100%,0 100%,0 6px)}
+.mbtn:hover{background:color-mix(in srgb,var(--cyan) 15%,transparent)}
+.mbar{grid-column:2/4;height:4px;background:var(--line);margin-top:.25rem}
+.mbar i{display:block;height:100%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);transition:width .5s}
+.mission details{grid-column:2/4;font-size:.8rem;color:var(--muted)}
+.mission summary{cursor:pointer;color:var(--cyan);font-family:var(--display);width:max-content}
+.mission.done .mi{background:var(--ok);border-color:var(--ok)}
+.mission.done h4{color:var(--muted);text-decoration:line-through}
+.mission.done .mbtn{visibility:hidden}
+.mission.done .mbar i{background:var(--ok);box-shadow:none}
+.m-done{display:none;padding:.65rem .8rem;font-family:var(--display);font-weight:600;color:var(--ok)}
+.missions.complete .m-done{display:block;animation:pop .4s}
+
+/* in-app speaker toggle + body-scan focus */
+.dev-head .right{display:flex;align-items:center;gap:.6rem}
+.spk{width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);background:var(--panel2);font-size:.9rem;padding:0;border-radius:50%}
+.spk[aria-pressed="true"]{border-color:var(--cyan)}
+.zone.scanning{fill:color-mix(in srgb,var(--cyan) 45%,transparent)!important;stroke:var(--cyan)!important;stroke-dasharray:none!important;filter:drop-shadow(0 0 10px var(--cyan))!important;animation:pulse .9s ease-in-out infinite!important}
+
+/* listening mode */
+.listen{width:46px;height:46px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--panel2);display:grid;place-items:center;font-size:1.15rem}
+.listen[aria-pressed="true"]{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 18%,var(--panel));animation:ear 2s ease-out infinite}
+@keyframes ear{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--cyan) 55%,transparent)}100%{box-shadow:0 0 0 14px transparent}}
+.listen[hidden]{display:none}
+.lchip{display:none;align-items:center;gap:.35rem;font-family:var(--display);font-size:.75rem;color:var(--cyan)}
+.lchip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--cyan);animation:glow 1.2s infinite}
+body.listening .lchip{display:inline-flex}
+body.listening .holo::after{content:"";position:absolute;width:210px;height:210px;top:-9px;border-radius:50%;border:1px solid color-mix(in srgb,var(--cyan) 40%,transparent);animation:ear 2.4s ease-out infinite}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<canvas id="stars" aria-hidden="true"></canvas>
+<div class="grid" aria-hidden="true"></div>
+
+<header class="top">
+  <div class="brand">Vessel<span>Watch</span></div>
+</header>
+
+<div class="demo" role="group" aria-label="Demo controls, not part of the app">
+  <div class="demo-id"><b>🎬 Demo controls</b><span>Not part of the app. Jumps to a simulated day.</span></div>
+  <button class="scn" data-s="normal" aria-pressed="false"><i></i>Normal day</button>
+  <button class="scn" data-s="investigate" aria-pressed="false"><i></i>Needs a closer look</button>
+  <button class="scn" data-s="red" aria-pressed="false"><i></i>Red alert</button>
+  <button class="scn" data-s="free" aria-pressed="true"><i></i>Live check-in</button>
+</div>
+
+<div class="stage">
+  <div class="col">
+  <p class="layer"><b>The app</b> what Rin sees</p>
+  <div class="device panel" role="application" aria-label="VesselWatch crew console">
+    <div class="dev-head"><span><b>Crew console</b> · Rin Takeda · Flight day <span id="dDay">47</span></span><span class="right"><span class="lchip" id="lchip">Listening for “Lumi”</span><button class="spk" id="voiceToggle" aria-pressed="true" aria-label="Spoken replies on. Tap to mute" title="Spoken replies">🔊</button><span class="tag tag-sim">Simulated</span></span></div>
+    <div class="alertbar" role="alert" id="alertbar">Red alert: your crew medical officer and Earth have been notified.</div>
+    <div class="timeline" aria-label="Mission timeline">
+      <div class="tl-track"><div class="tl-fill" id="tlFill"></div><div id="tlPoints"></div><div class="tl-you" id="tlYou"></div></div>
+      <div class="tl-cap" id="tlCap" aria-live="polite"></div>
+    </div>
+
+    <section class="screen on" id="sToday" aria-live="polite">
+      <div class="holo" id="holo">
+        <div class="beam"></div><div class="emitter"></div>
+        <div class="ticks"></div><div class="ring" id="ring" style="--p:40"></div>
+        <svg class="lumi" id="lumi" viewBox="0 0 200 200" aria-hidden="true"></svg>
+      </div>
+      <div class="stats"><span><b id="sGlow">3</b>Glow level</span><span><b id="sCheck">12</b>Honest check-ins</span><span><b>0</b>Streaks to lose</span></div>
+      <div id="flow"></div>
+    </section>
+
+    <section class="screen" id="sBody">
+      <div class="scanwrap">
+        <svg viewBox="0 0 220 300" width="230" height="300" aria-label="Body scan map">
+          <circle class="silhouette" cx="110" cy="48" r="26"/>
+          <path class="silhouette" d="M70 96 Q110 84 150 96 L160 192 Q110 202 60 192 Z"/>
+          <path class="silhouette" d="M74 194 L94 194 L96 292 L76 292 Z M126 194 L146 194 L144 292 L124 292 Z"/>
+          <path class="silhouette" d="M68 102 L44 182 L54 186 L78 110 Z M152 102 L176 182 L166 186 L142 110 Z"/>
+          <circle class="zone" data-z="mind" tabindex="0" cx="110" cy="44" r="40" data-s="idle" opacity=".55"/>
+          <circle class="zone" data-z="head" tabindex="0" cx="110" cy="50" r="18" data-s="idle"/>
+          <rect class="zone" data-z="neck" tabindex="0" x="101" y="74" width="18" height="18" rx="3" data-s="idle"/>
+          <path class="zone" data-z="heart" tabindex="0" d="M118 120 c8-10 22-2 14 10 l-14 14 -14-14 c-8-12 6-20 14-10z" data-s="idle"/>
+          <text class="zlabel" x="156" y="26">Mind, sleep</text>
+          <text class="zlabel" x="146" y="54">Head, eyes</text>
+          <text class="zlabel" x="126" y="86">Neck veins</text>
+          <text class="zlabel" x="152" y="134">Heart, lungs</text>
+        </svg>
+      </div>
+      <div class="zone-info" id="zoneInfo"><h3>Scan not run yet</h3><p>Pick a scenario or finish today’s check-in.</p></div>
+    </section>
+
+
+    <div class="partial" id="partial" aria-live="polite"></div>
+    <form class="voicebar" id="sayForm" autocomplete="off">
+      <button type="button" class="listen" id="listenBtn" aria-pressed="false" aria-label="Turn listening mode on" title="Listening mode: say “Lumi, check in”" hidden>👂</button>
+      <button type="button" class="mic" id="mic" aria-label="Talk to Lumi" hidden>🎙</button>
+      <label class="sr" for="sayInput">Tell Lumi how you feel</label>
+      <input class="say-input" id="sayInput" placeholder="Tell Lumi, e.g. “headache” or “drank water”">
+      <button class="send" type="submit">Send</button>
+    </form>
+    <nav class="tabs" aria-label="Console sections">
+      <button data-tab="sToday" aria-current="true"><span>◈</span>Check-in</button>
+      <button data-tab="sBody" aria-current="false"><span>◎</span>Body scan</button>
+    </nav>
+  </div>
+
+  </div>
+  <div class="col">
+  <p class="layer"><b>Behind the app</b> how the agent decides</p>
+  <section class="agent panel" aria-label="Medical agent reasoning">
+    <div class="panel-head">Medical agent <span class="tag tag-sim">Playbook v0.1, pending clinician review</span></div>
+    <div class="body">
+      <div class="agent-id">
+        <div class="badge">MD</div>
+        <div><h2>Flight medicine playbook</h2><p>Rules written the way a flight physician triages, each tied to its evidence. No black box: every recommendation shows which rule fired.</p></div>
+      </div>
+
+      <div class="sec"><h3>What the agent sees</h3><dl class="inputs" id="inputs"><dt>Status</dt><dd>Waiting for a check-in</dd></dl></div>
+
+      <div class="sec"><h3>Assessment</h3>
+        <div class="verdict" id="verdict" data-sev="-1"><div class="sev" id="vSev">—</div><p id="vText">Pick a scenario, answer Lumi, or just tell it how you feel.</p></div>
+        <p class="checked" id="checked"></p>
+      </div>
+
+      <div class="sec"><h3>Rules that matched</h3><div id="rules"></div></div>
+
+      <div class="sec"><h3>Actions and who is told</h3><ul class="acts" id="acts"></ul></div>
+
+      <details class="playbook"><summary>See the whole playbook</summary><ul class="pb" id="pb"></ul></details>
+
+      <p class="caveat">Decision support, not diagnosis. Clot rules follow NASA OCHMO-MTB-007 (2026); red flags are standard emergency signs; sleep, mood and fatigue rules are demo rules, since NASA has not published validated thresholds yet. Every reading here is simulated, and no drug doses are shown.</p>
+    </div>
+  </section>
+  </div>
+</div>
+
+<script type="module">
+import { createAgent, loadPlaybook } from "./agent/agent.js";
+(async function(){
+  const $ = id=>document.getElementById(id);
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const BASE_SLEEP = 7.2;
+
+  /* =========================================================
+     THE MEDICAL AGENT
+     All clinical knowledge lives in agent/playbook.json.
+     agent/agent.js only evaluates it, so the same agent can be
+     reused in any other app (or in Python via agent/agent.py).
+     ========================================================= */
+  let agent, playbook;
+  try { playbook = await loadPlaybook("./agent/playbook.json"); agent = createAgent(playbook); }
+  catch(err){ document.body.insertAdjacentHTML("afterbegin", `<p style="position:relative;z-index:70;background:#5a1020;color:#fff;padding:.6rem 16px;margin:0">The medical agent's playbook didn't load (${err.message}). Serve the folder over http, not file://.</p>`); throw err; }
+  const toSignals = s => ({...s, baselineSleepH:BASE_SLEEP, symptoms:[...s.sym], risk:{family:!!s.risk.family, thrombophilia:!!s.risk.thrombo, hormone:!!s.risk.hormone}});
+  const SYM_LABEL = Object.fromEntries(playbook.lexicon.symptoms.map(e=>[e.symptom, e.label]));
+  const ALL_RULES = [...playbook.rules, ...(playbook.fallback?[playbook.fallback]:[])];
+  document.querySelector(".agent .panel-head .tag").textContent = `Playbook v${playbook.meta.version}, pending clinician review`;
+  const EV_LABEL = {"nasa-protocol":"NASA protocol","clinical-red-flag":"Clinical red flag","peer-reviewed":"Peer-reviewed study","standard-practice":"Standard spaceflight practice","demo-threshold":"Demo threshold, needs a clinician’s value"};
+
+  /* =========================================================
+     SCENARIOS (simulated data)
+     ========================================================= */
+  const SCENARIOS = {
+    normal:{day:32, sleepH:7.3, shortNights:0, mood:"good", lowDays:0, sym:[], scan:{day:30,result:"reduced"}, risk:{}, evaIn:12, landingIn:200, exerciseMin7d:125, restingHR:58, baselineHR:57, hrHighDays:0, anticoag:"none",
+      opener:"Morning, Rin. Here’s today from your band and your check-in."},
+    investigate:{day:47, sleepH:5.2, shortNights:3, mood:"meh", lowDays:1, sym:["headache","puffy"], scan:{day:30,result:"reduced"}, risk:{}, evaIn:11, landingIn:185, exerciseMin7d:95, restingHR:62, baselineHR:57, hrHighDays:1, anticoag:"none",
+      opener:"Morning, Rin. Third short night in a row, and you mentioned a headache and a puffier face."},
+    red:{day:54, sleepH:6.6, shortNights:0, mood:"meh", lowDays:0, sym:["neck"], scan:{day:54,result:"thrombus"}, risk:{}, evaIn:4, landingIn:178, exerciseMin7d:110, restingHR:60, baselineHR:57, hrHighDays:0, anticoag:"none",
+      opener:"Rin, your follow-up neck scan from this morning just came back."}
+  };
+  const SCAN_LABEL = {reduced:"Antegrade, slow (common in flight)", stagnant:"Stagnant", thrombus:"Suspected clot", antegrade:"Antegrade", retrograde:"Retrograde"};
+
+  let S;
+  function freshState(){ return {day:47, sleepH:5.2, shortNights:0, mood:null, lowDays:0, sym:new Set(), scan:{day:30,result:"reduced"}, risk:{}, evaIn:11, landingIn:185, exerciseMin7d:95, restingHR:59, baselineHR:57, hrHighDays:0, anticoag:"none"}; }
+  function loadScenario(k){ const d=SCENARIOS[k]; S={...d, sym:new Set(d.sym), scan:{...d.scan}, risk:{...d.risk}}; $("dDay").textContent=S.day; }
+
+  /* =========================================================
+     LUMI + UI
+     ========================================================= */
+  /* Lumi: an original robot-cat hologram. Faces: neutral, happy, worried (concerned), alert, thinking, listening. */
+  function lumiSVG(id){
+    const ink="#08121c";
+    $(id).innerHTML = `
+    <defs>
+      <radialGradient id="lg${id}" cx="40%" cy="28%" r="80%"><stop offset="0" stop-color="var(--holo1)"/><stop offset=".55" stop-color="var(--holo2)"/><stop offset="1" stop-color="var(--holo3)"/></radialGradient>
+      <pattern id="sl${id}" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="1.3" fill="rgba(8,18,28,.28)"/></pattern>
+      <filter id="gl${id}"><feGaussianBlur stdDeviation="7"/></filter>
+      <filter id="led${id}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <g class="bob">
+      <ellipse cx="100" cy="122" rx="74" ry="64" fill="var(--holo2)" opacity=".22" filter="url(#gl${id})"/>
+      <g class="tail">
+        <path d="M132 160 C160 158 170 136 158 112" stroke="var(--holo2)" stroke-width="8" fill="none" stroke-linecap="round"/>
+        <path d="M132 160 C160 158 170 136 158 112" stroke="url(#sl${id})" stroke-width="8" fill="none" stroke-linecap="round"/>
+        <circle class="tip" cx="158" cy="110" r="5.5" fill="var(--amber)"/>
+      </g>
+      <g class="scan">
+        <ellipse cx="100" cy="162" rx="36" ry="22" fill="url(#lg${id})"/>
+        <ellipse cx="100" cy="162" rx="36" ry="22" fill="url(#sl${id})"/>
+        <ellipse cx="100" cy="164" rx="16" ry="10" fill="${ink}" opacity=".55"/>
+        <circle cx="100" cy="164" r="4" fill="var(--holo1)" class="tip"/>
+        <ellipse cx="84" cy="182" rx="10" ry="6" fill="var(--holo2)"/><ellipse cx="116" cy="182" rx="10" ry="6" fill="var(--holo2)"/>
+        <g class="earL"><path d="M56 88 L58 34 L96 66 Z" fill="url(#lg${id})"/><path d="M64 78 L65 50 L84 66 Z" fill="#ff9fb3" opacity=".65"/><circle class="tip" cx="58" cy="36" r="3.5" fill="var(--amber)"/></g>
+        <g class="earR"><path d="M144 88 L142 34 L104 66 Z" fill="url(#lg${id})"/><path d="M136 78 L135 50 L116 66 Z" fill="#ff9fb3" opacity=".65"/><circle class="tip" cx="142" cy="36" r="3.5" fill="var(--amber)"/></g>
+        <rect x="44" y="60" width="112" height="88" rx="42" fill="url(#lg${id})"/>
+        <rect x="44" y="60" width="112" height="88" rx="42" fill="url(#sl${id})"/>
+        <rect x="44" y="60" width="112" height="88" rx="42" fill="none" stroke="var(--holo1)" stroke-width="1.5" opacity=".8"/>
+        <path d="M86 64 Q100 58 114 64" stroke="var(--holo1)" stroke-width="2" fill="none" opacity=".7"/>
+        <rect x="58" y="84" width="84" height="44" rx="21" fill="${ink}" opacity=".88"/>
+        <g class="look" filter="url(#led${id})">
+          <g class="eyes-open"><g class="blink">
+            <ellipse cx="82" cy="106" rx="8" ry="10" fill="var(--holo1)"/><ellipse cx="118" cy="106" rx="8" ry="10" fill="var(--holo1)"/>
+            <circle cx="85" cy="102" r="2.6" fill="#fff"/><circle cx="121" cy="102" r="2.6" fill="#fff"/>
+          </g></g>
+          <g class="eyes-happy" stroke="var(--holo1)" stroke-width="4.5" fill="none" stroke-linecap="round">
+            <path d="M73 109 Q82 97 91 109"/><path d="M109 109 Q118 97 127 109"/>
+          </g>
+          <g class="eyes-worried">
+            <ellipse cx="82" cy="109" rx="7" ry="8" fill="var(--holo1)"/><ellipse cx="118" cy="109" rx="7" ry="8" fill="var(--holo1)"/>
+            <path d="M71 97 L91 92 M129 97 L109 92" stroke="var(--holo1)" stroke-width="3.5" stroke-linecap="round"/>
+          </g>
+          <g class="eyes-alert">
+            <circle cx="82" cy="106" r="10" fill="none" stroke="var(--holo1)" stroke-width="3"/><circle cx="118" cy="106" r="10" fill="none" stroke="var(--holo1)" stroke-width="3"/>
+            <circle cx="82" cy="106" r="3.2" fill="var(--holo1)"/><circle cx="118" cy="106" r="3.2" fill="var(--holo1)"/>
+          </g>
+        </g>
+        <ellipse class="blush" cx="66" cy="132" rx="8" ry="4.5" fill="#ff9fb3" opacity=".7"/><ellipse class="blush" cx="134" cy="132" rx="8" ry="4.5" fill="#ff9fb3" opacity=".7"/>
+        <path d="M96.5 132 L103.5 132 L100 136 Z" fill="#ff9fb3"/>
+        <path class="mouth-neutral" d="M92 138 Q96 142 100 138 Q104 142 108 138" stroke="${ink}" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+        <path class="mouth-happy" d="M89 137 Q94.5 145 100 138 Q105.5 145 111 137" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path class="mouth-worried" d="M92 142 Q100 135 108 142" stroke="${ink}" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+        <g stroke="var(--holo1)" stroke-width="1.6" stroke-linecap="round" opacity=".75">
+          <path d="M56 126 L36 121 M56 132 L36 134 M144 126 L164 121 M144 132 L164 134"/>
+        </g>
+        <path class="sweat" d="M150 76 q6 9 0 13 q-6 -4 0 -13" fill="#bfefff"/>
+      </g>
+    </g>`;
+  }
+  lumiSVG("lumi");
+  const lumi = $("lumi");
+  let restFace = "";   // the face Lumi returns to: "happy", "concerned", "alert" or neutral
+  function mood(m){
+    lumi.classList.remove("thinking","happy","concerned","alert","listening");
+    const cls = m || restFace;
+    if (cls){ void lumi.getBoundingClientRect(); cls.split(" ").forEach(c=>lumi.classList.add(c)); }
+  }
+  function setRest(face){ restFace = face; mood(face); }
+  lumi.setAttribute("role","button"); lumi.setAttribute("tabindex","0"); lumi.setAttribute("aria-label","Lumi, your robot cat. Tap to pet.");
+  lumi.removeAttribute("aria-hidden");
+  addEventListener("pointermove", e=>{
+    const r=lumi.getBoundingClientRect(); if(!r.width) return;
+    const dx=e.clientX-(r.left+r.width/2), dy=e.clientY-(r.top+r.height*.45), d=Math.hypot(dx,dy)||1, k=Math.min(1,d/220);
+    lumi.style.setProperty("--lx",(dx/d*5*k).toFixed(1)+"px"); lumi.style.setProperty("--ly",(dy/d*3.5*k).toFixed(1)+"px");
+  }, {passive:true});
+  const PET_LINES = {ok:["Mrrp!","Purrr…","Hi Rin!","Beep boop, happy."], worried:["I’m right here.","We’ll sort it out.","Purr… you’re not alone."], alert:["Stay with me. Help is coming.","I’m here. Ines is on the way."]};
+  let petT, sayT;
+  function purr(){
+    try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)(); const t=actx.currentTime;
+      const o=actx.createOscillator(), g=actx.createGain(), lfo=actx.createOscillator(), lg=actx.createGain();
+      o.type="triangle"; o.frequency.value=140; lfo.frequency.value=24; lg.gain.value=0.05; lfo.connect(lg).connect(g.gain);
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.06,t+.05); g.gain.exponentialRampToValueAtTime(0.0001,t+.6);
+      o.connect(g).connect(actx.destination); o.start(t); lfo.start(t); o.stop(t+.65); lfo.stop(t+.65); }catch(_){}
+  }
+  function lumiSay(text){
+    document.querySelector(".lumi-say")?.remove();
+    const b=document.createElement("div"); b.className="lumi-say"; b.textContent=text; $("holo").appendChild(b);
+    clearTimeout(sayT); sayT=setTimeout(()=>b.remove(),2200);
+  }
+  function pet(){
+    lumi.classList.remove("pet"); void lumi.getBoundingClientRect(); lumi.classList.add("pet");
+    const h=document.createElement("div"); h.className="float-heart"; h.textContent="♥"; $("holo").appendChild(h); setTimeout(()=>h.remove(),1500);
+    const set = lumi.classList.contains("alert")?PET_LINES.alert : lumi.classList.contains("concerned")?PET_LINES.worried : PET_LINES.ok;
+    lumiSay(set[Math.floor(Math.random()*set.length)]); purr();
+    clearTimeout(petT); petT=setTimeout(()=>lumi.classList.remove("pet"),1400);
+  }
+  lumi.addEventListener("click", pet);
+  lumi.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); pet(); } });
+
+  function xp(n){ const s=document.createElement("div"); s.className="float-xp"; s.textContent=`+${n} glow`; $("holo").appendChild(s); setTimeout(()=>s.remove(),1700); }
+
+  function typeIn(root){
+    root.querySelectorAll(".msg[data-t]").forEach(el=>{
+      const t = el.dataset.t; el.removeAttribute("data-t");
+      if (reduce){ el.textContent=t; return; }
+      el.textContent=""; el.classList.add("caret"); let i=0;
+      const iv=setInterval(()=>{ el.textContent=t.slice(0,++i); if(i>=t.length){clearInterval(iv); el.classList.remove("caret");} }, 14);
+    });
+  }
+  const esc = s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+  function tx(msg, sub, tone, from){ return `<div class="tx ${tone||""}"><div class="from">${from||"Lumi"}</div><div class="msg" data-t="${esc(msg)}"></div>${sub?`<small>${sub}</small>`:""}</div>`; }
+  const flow = $("flow");
+  $("sToday").addEventListener("scroll", e=>{ $("holo").classList.toggle("compact", e.currentTarget.scrollTop > 60); }, {passive:true});
+  function render(html){ flow.innerHTML = html; typeIn(flow); flow.parentElement.scrollTop = 0; }
+  function append(html){ const d=document.createElement("div"); d.innerHTML=html; while(d.firstChild) flow.appendChild(d.firstChild); typeIn(flow); flow.lastElementChild?.scrollIntoView({block:"nearest",behavior:reduce?"auto":"smooth"}); }
+
+  /* ---------- voice out ---------- */
+  let tts=null, voiceOn=true, actx;
+  function chime(){
+    try{
+      actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+      const t = actx.currentTime;
+      [660,880].forEach((f,i)=>{ const o=actx.createOscillator(), g=actx.createGain(); o.type="sine"; o.frequency.value=f;
+        g.gain.setValueAtTime(0.0001,t+i*.12); g.gain.exponentialRampToValueAtTime(0.12,t+i*.12+.02); g.gain.exponentialRampToValueAtTime(0.0001,t+i*.12+.25);
+        o.connect(g).connect(actx.destination); o.start(t+i*.12); o.stop(t+i*.12+.3); });
+    }catch(_){}
+  }
+  function syncVoice(){
+    const b=$("voiceToggle"); b.setAttribute("aria-pressed",voiceOn); b.textContent = voiceOn?"🔊":"🔇";
+    b.setAttribute("aria-label", voiceOn?"Spoken replies on. Tap to mute":"Spoken replies off. Tap to turn on");
+  }
+  $("voiceToggle").onclick = ()=>{ voiceOn=!voiceOn; syncVoice(); if(!voiceOn){ tts?.stop().catch(()=>{}); window.speechSynthesis?.cancel(); } };
+
+  // Speak and resolve when done. While listening through the browser mic, pause it so Lumi doesn't hear itself.
+  async function speak(text){
+    if (!voiceOn || !text) return;
+    if (listenMode && engine==="platform"){ chime(); return; }   // claude.ai can't speak during its own dictation
+    const pause = listenMode && engine==="browser";
+    if (pause){ speakingNow=true; try{ listenRecog.stop(); }catch(_){} }
+    try{
+      if (tts) await tts.speak(text,{language:"en"}).catch(e=>{ if(e && e.code==="not_granted"){ voiceOn=false; syncVoice(); } });
+      else if (window.speechSynthesis && !window.__claudeView) await new Promise(res=>{
+        speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang="en-US"; u.rate=1.02;
+        u.onend=u.onerror=res; speechSynthesis.speak(u); setTimeout(res, 20000); });
+    } finally {
+      if (pause){ speakingNow=false; if(listenMode){ setTimeout(()=>{ try{ listenRecog.start(); }catch(_){} }, 150); } }
+    }
+  }
+
+  /* ---------- assessment display ---------- */
+  const zones = {mind:"idle", head:"idle", neck:"idle", heart:"idle"};
+  let zoneText = {};
+  function paintZones(){ document.querySelectorAll(".zone").forEach(z=>z.dataset.s = zones[z.dataset.z]); }
+  const ZTITLE={mind:"Mind and sleep",head:"Head and eyes",neck:"Neck veins",heart:"Heart and lungs"};
+  function showZone(z){
+    const titles=ZTITLE;
+    const zi=$("zoneInfo"); zi.className="zone-info "+zones[z];
+    zi.innerHTML = `<h3>${titles[z]}</h3><p>${zoneText[z]||"Not checked yet."}</p>`;
+  }
+  document.querySelectorAll(".zone").forEach(z=>{
+    z.addEventListener("click", ()=>showZone(z.dataset.z));
+    z.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();showZone(z.dataset.z);} });
+  });
+
+  function showInputs(){
+    const syms=[...S.sym].filter(s=>s!=="none");
+    const sev3=["chest","breath","severeHead","neuro"];
+    const row=(k,v,cls)=>`<dt>${k}</dt><dd class="${cls||""}">${v}</dd>`;
+    $("inputs").innerHTML =
+      row("Sleep", `${S.sleepH.toFixed(1)} h (usual ${BASE_SLEEP} h)${S.shortNights?` · ${S.shortNights} short night${S.shortNights>1?"s":""} in a row`:""}`, S.sleepH<BASE_SLEEP-1?"flag":"") +
+      row("Mood", S.mood?({good:"Good",meh:"So-so",low:"Low"})[S.mood]:"Not asked yet", S.mood==="low"?"flag":"") +
+      row("Symptoms", syms.length?syms.map(s=>SYM_LABEL[s]).join(", "):"None reported", syms.some(s=>sev3.includes(s))?"flag3":syms.length?"flag":"") +
+      row("Last neck scan", `Flight day ${S.scan.day}: ${SCAN_LABEL[S.scan.result]}`, S.scan.result==="thrombus"?"flag3":S.scan.result==="stagnant"?"flag":"") +
+      row("Risk factors", (S.risk.family||S.risk.thrombo||S.risk.hormone)?"On record":"None on record") +
+      row("Next spacewalk", `In ${S.evaIn} days`, S.evaIn<=3?"flag":"") +
+      row("Landing", `In ${S.landingIn} days`, S.landingIn<=7?"flag":"") +
+      row("Exercise", `${S.exerciseMin7d} min a day this week`, S.exerciseMin7d<60?"flag":"") +
+      row("Resting heart rate", `${S.restingHR} bpm (usual ${S.baselineHR})${S.hrHighDays?` · high ${S.hrHighDays} day${S.hrHighDays>1?"s":""}`:""}`, S.hrHighDays>=3?"flag":"") +
+      row("Anticoagulant", S.anticoag==="none"?"None":S.anticoag, S.anticoag!=="none"?"flag":"");
+  }
+
+  function showAssessment(R){
+    $("verdict").dataset.sev=R.severity; $("vSev").textContent=R.level; $("vText").textContent=R.meaning;
+    $("checked").textContent = `${R.checked} rules checked, ${R.rules.length} matched · playbook v${R.playbookVersion}`;
+    $("rules").innerHTML = R.rules.map((r,i)=>`<div class="rule" data-sev="${r.severity}" style="animation-delay:${i*120}ms"><div class="rh"><h4>${r.title}</h4><span class="rid">${r.id}</span></div><p>${r.why}</p><div class="ev">${EV_LABEL[r.evidenceLevel]||r.evidenceLevel}${r.evidence.length?" · "+r.evidence.join(" · "):""}</div></div>`).join("");
+    $("acts").innerHTML = R.actions.map(a=>`<li class="l${a.level}">${a.text}${a.tag?` <em>(${a.tag})</em>`:""}<span>${a.whoLabel}</span></li>`).join("");
+    const hit=new Set(R.rules.map(r=>r.id));
+    $("pb").innerHTML = ALL_RULES.map(r=>`<li class="${hit.has(r.id)?"hit":""}"><b>${r.id}</b><span>${r.title}</span></li>`).join("");
+
+    // body map
+    const syms=S.sym;
+    const lvl=(c3,c2)=>c3?"alert":c2?"watch":"ok";
+    zones.mind = lvl(false, S.shortNights>=2 || S.sleepH<BASE_SLEEP-1 || S.mood==="low");
+    zones.head = lvl(syms.has("severeHead")||syms.has("neuro"), syms.has("headache")||syms.has("vision"));
+    zones.neck = lvl(S.scan.result==="thrombus", syms.has("puffy")||syms.has("neck")||S.scan.result==="stagnant");
+    zones.heart = lvl(syms.has("chest")||syms.has("breath"), syms.has("palp"));
+    zoneText = {
+      mind: zones.mind==="ok"?"Sleep and mood look like your usual.":"Sleep or mood is off your baseline. Lumi offered support; it stays private.",
+      head: zones.head==="alert"?"Red flag reported. Medical officer called.":zones.head==="watch"?"Headache or vision change reported. Lumi checks blood flow before guessing.":"No headache or vision change.",
+      neck: zones.neck==="alert"?"Suspected clot on today’s scan. NASA treatment protocol started.":zones.neck==="watch"?"Signs worth a neck scan (NASA OCHMO-MTB-007).":"No warning signs. Next routine scan on flight day 60.",
+      heart: zones.heart==="alert"?"Chest pain or breathlessness. Medical officer called now.":zones.heart==="watch"?"Palpitations. Wearable recording sent for review.":"Heart rate and oxygen at baseline (simulated)."
+    };
+    paintZones();
+    const zi=$("zoneInfo"); zi.className="zone-info"; zi.innerHTML=`<h3>Scan updated</h3><p>Tap a glowing area to see why.</p>`;
+
+    document.body.classList.remove("sev2","sev3"); if (R.severity>=2) document.body.classList.add("sev"+R.severity);
+  }
+
+  function crewCards(R){
+    return R.actions.filter(a=>a.who!=="crew"||a.level>=3).map(a=>`<div class="card l${a.level}"><div class="top2"><h3>${a.text}</h3><span class="who">${a.whoLabel}</span></div></div>`).join("");
+  }
+
+  /* ---------- daily missions (A) ---------- */
+  const ICON = {"T-SYM":"🩺","T-H2O":"💧","T-H2O-PLUS":"💧","T-EX":"🏃","T-EX-HI":"⚡","T-EX-AERO":"🚴","T-SCAN":"📡","T-TREAT":"🩺","T-VIS":"👁","T-BLOOD":"🩸","T-LAND":"🪂","T-GOOD":"☀️"};
+  let M = [];
+  const goalTarget = t => t.goal.type==="check" ? 1 : t.goal.target;
+  function missionSub(t){
+    if (t.goal.type==="count") return `${t.progress} of ${t.goal.target} ${t.goal.unit}`;
+    if (t.goal.type==="minutes") return t.done ? `${t.goal.target} min logged` : `${t.progress} of ${t.goal.target} min · syncs from wearable`;
+    return t.done ? (t.auto==="checkin" ? "Done with this check-in" : "Done") : "Tap when done";
+  }
+  function missionCard(t,i){
+    const btn = t.goal.type==="count" ? "+1" : "Done";
+    return `<div class="mission ${t.done?"done":""}" data-i="${i}" style="animation-delay:${i*90}ms">
+      <div class="mi"><span>${ICON[t.id]||"◆"}</span></div>
+      <div><h4>${t.title}</h4><div class="sub">${missionSub(t)}</div></div>
+      <button class="mbtn" data-i="${i}" aria-label="${btn}: ${t.title}">${btn}</button>
+      ${t.goal.type!=="check"?`<div class="mbar"><i style="width:${Math.round(t.progress/goalTarget(t)*100)}%"></i></div>`:""}
+      <details><summary>Why</summary>${t.why}${t.goal.demo?" The goal is a demo value.":""}</details>
+    </div>`;
+  }
+  function missionsHTML(plan){
+    const prev = Object.fromEntries(M.map(t=>[t.id,t]));
+    M = plan.tasks.map(t=>{ const p=prev[t.id]; if(p) return {...t, progress:p.progress, done:p.done};
+      const auto=t.auto==="checkin"; return {...t, progress:auto?goalTarget(t):0, done:auto}; });
+    const n = M.filter(t=>t.done).length;
+    return `<div class="missions ${n===M.length?"complete":""}" id="missions"><div class="m-head"><span>Today’s missions</span><span class="m-count" id="mCount">${n} of ${M.length}</span></div>${M.map(missionCard).join("")}<div class="m-done">All missions complete. +20 glow</div></div>`;
+  }
+  function wireMissions(){ document.querySelectorAll("#missions .mbtn").forEach(b=>b.onclick=()=>advance(+b.dataset.i)); }
+  function advance(i){
+    const t=M[i]; if(!t || t.done) return null;
+    t.progress = t.goal.type==="count" ? Math.min(t.goal.target, t.progress+1) : goalTarget(t);
+    if (t.progress>=goalTarget(t)){ t.done=true; addGlow(5); mood("happy"); }
+    const card=document.querySelector(`#missions .mission[data-i="${i}"]`);
+    if (card){ card.classList.toggle("done",t.done); card.querySelector(".sub").textContent=missionSub(t);
+      const bar=card.querySelector(".mbar i"); if(bar) bar.style.width=Math.round(t.progress/goalTarget(t)*100)+"%"; }
+    const n=M.filter(x=>x.done).length; const mc=$("mCount"); if(mc) mc.textContent=`${n} of ${M.length}`;
+    const box=$("missions"); if(n===M.length && box && !box.classList.contains("complete")){ box.classList.add("complete"); addGlow(20); }
+    return t;
+  }
+  function addGlow(n){ glow=Math.min(100,glow+n); $("ring").style.setProperty("--p",glow); $("sGlow").textContent=3+Math.floor((glow-40)/45); xp(n); }
+
+  const MISSION_CMDS = [
+    {re:/\b(drank|drink|drinking|had|finished)\b.{0,20}\b(water|drink|bag|fluids?)\b|\bhydrat/i, ids:["T-H2O","T-H2O-PLUS"]},
+    {re:/\b(done|did|finished|completed)\b.{0,25}\b(exercise|workout|training|bike|treadmill|session)\b|\b(exercise|workout|session)\b.{0,12}\b(done|finished)\b/i, ids:["T-EX","T-EX-HI","T-EX-AERO"]},
+    {re:/\b(vision|eye)\s*test\b/i, ids:["T-VIS"]},
+    {re:/\bscan\b.{0,15}\b(done|finished)\b|\bdid (the|my) scan\b/i, ids:["T-SCAN"]},
+    {re:/\bblood\b.{0,15}\b(draw|test)\b/i, ids:["T-BLOOD"]},
+    {re:/\bgood moment\b|\bgrateful\b|\bthankful\b|\bmade me smile\b/i, ids:["T-GOOD"]},
+    {re:/\blanding checklist\b/i, ids:["T-LAND"]},
+    {re:/\btreatment check.?in\b/i, ids:["T-TREAT"]}
+  ];
+  function missionCommand(text){
+    for (const c of MISSION_CMDS){
+      if (!c.re.test(text)) continue;
+      const i = M.findIndex(t=>c.ids.includes(t.id));
+      if (i<0) continue;
+      if (M[i].done) return `${M[i].title} is already done.`;
+      const t = advance(i);
+      return t.done ? `Mission done: ${t.title}.` : `Logged. ${t.title}: ${missionSub(t)}.`;
+    }
+    return null;
+  }
+
+  /* ---------- NASA mission timeline (C) ---------- */
+  let lastPlan=null, tlT;
+  function renderTimeline(plan){
+    lastPlan=plan; const tl=plan.timeline; if(!tl.length) return;
+    const pct=d=>Math.max(0,Math.min(100,d/tl.length*100));
+    const fill=$("tlFill"), you=$("tlYou");
+    fill.style.transition=you.style.transition="none"; fill.style.width="0%"; you.style.left="0%"; void fill.offsetWidth;
+    fill.style.transition=you.style.transition="";
+    $("tlPoints").innerHTML = tl.checkpoints.map(p=>`<button class="tl-pt ${p.status}${tl.next&&p.id===tl.next.id?" next":""}" style="left:${pct(p.day)}%" data-id="${p.id}" title="${p.label}, flight day ${p.day}" aria-label="${p.label}, flight day ${p.day}"></button>`).join("");
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ fill.style.width=pct(tl.today)+"%"; you.style.left=pct(tl.today)+"%"; }));
+    tlCaption();
+    $("tlPoints").querySelectorAll(".tl-pt").forEach(b=>b.onclick=()=>{
+      const p=tl.checkpoints.find(x=>x.id===b.dataset.id);
+      const when = p.status==="done"?"done":p.status==="today"?"today":`in ${p.day-tl.today} days`;
+      $("tlCap").innerHTML=`<span><b>${p.label}</b> · flight day ${p.day} · ${when}</span><span>${p.evidence.length?"NASA schedule":""}</span>`;
+      clearTimeout(tlT); tlT=setTimeout(tlCaption,4000);
+    });
+  }
+  function tlCaption(){
+    const tl=lastPlan.timeline;
+    $("tlCap").innerHTML = `<span>Flight day <b>${tl.today}</b> of ${tl.length}</span>` + (tl.next?`<span>Next: <b>${tl.next.label}</b> in ${tl.daysToNext} day${tl.daysToNext===1?"":"s"}</span>`:`<span><b>Landing day</b></span>`);
+  }
+  const nextLine = plan => plan.timeline.next ? `Flight day ${plan.timeline.today}. Next up: ${plan.timeline.next.label.toLowerCase()} in ${plan.timeline.daysToNext} day${plan.timeline.daysToNext===1?"":"s"}.` : "";
+
+  /* ---------- run the agent ---------- */
+  let checkins=12, glow=40;
+  function runAgent(opts={}){
+    mood("thinking");
+    showInputs();
+    $("verdict").dataset.sev="-1"; $("vSev").textContent="…"; $("vText").textContent="Checking the playbook…"; $("rules").innerHTML=""; $("acts").innerHTML="";
+    setTimeout(()=>{
+      const plan = agent.planDay(toSignals(S)); const R = plan.assessment;
+      renderTimeline(plan);
+      showAssessment(R);
+      setRest(R.severity===3?"alert":R.severity===2?"concerned":"happy");
+      lumiSay(R.severity===3?"I’m right here.":R.severity===2?"Let’s take a look.":"All good, Rin!");
+      if (!opts.noReward){ checkins++; $("sCheck").textContent=checkins; addGlow(15); }
+      const tone = R.severity===3?"red":R.severity===2?"amber":"";
+      const fired = new Set(R.rules.map(r=>r.id));
+      let extra = "";
+      if (fired.has("BH-1")) extra += ` <button class="go alt" id="sendEarth">Send private note to Earth</button>`;
+      extra += ` <button class="go alt" data-goto="sBody">Open body scan</button>`;
+      append(tx(R.message, R.severity===3?"If anything changes, like chest pain or trouble breathing, say it out loud and Lumi calls Ines.":"", tone) + crewCards(R) + missionsHTML(plan) + `<div>${extra}</div>`);
+      wireMissions();
+      flow.querySelectorAll("[data-goto]").forEach(b=>b.onclick=()=>tab(b.dataset.goto));
+      const se=$("sendEarth"); if(se) se.onclick=()=>{ se.textContent="Sent. Reply in about 40 min"; se.disabled=true; };
+      const open = M.filter(t=>!t.done).map(t=>t.title.split(":")[0].toLowerCase());
+      const ack = pendingAck ? pendingAck+" " : ""; pendingAck="";
+      speak(ack + R.message + (open.length ? ` Today's missions: ${open.join(", ")}.` : ""));
+      if (opts.after==="body"){
+        const zi=$("zoneInfo"); zi.className="zone-info "+(R.severity===3?"alert":R.severity===2?"watch":"ok");
+        zi.innerHTML=`<h3>Scan complete: ${R.level}</h3><p>${R.message}</p><button class="go alt" id="toMissions">See today’s missions</button>`;
+        $("toMissions").onclick=()=>tab("sToday");
+      }
+      voiceFlow=false; awaiting=null; clearTimeout(noAnswerT);
+    }, opts.fast?500:1400);
+  }
+
+  /* ---------- check-in (free mode) ---------- */
+  let keyHandler=null;
+  function keys(m){ keyHandler=m; }
+  addEventListener("keydown", e=>{
+    if (!keyHandler || !$("sToday").classList.contains("on") || e.target.closest("input,textarea")) return;
+    const f=keyHandler[e.key]; if(f){ e.preventDefault(); f(); }
+  });
+  function chip(k,v,label,n,em){ return `<button class="chip" data-k="${k}" data-v="${v}" aria-pressed="false">${em?`<span class="em">${em}</span>`:`<kbd>${n}</kbd>`}${label}${em?`<kbd>${n}</kbd>`:""}</button>`; }
+  const prog=n=>`<div class="prog">${[0,1,2].map(i=>`<i class="${i<=n?"on":""}"></i>`).join("")}</div>`;
+  function startFree(){
+    S = freshState(); $("dDay").textContent=S.day; resetPanel(); setRest(""); mood("happy"); M=[];
+    const plan = agent.planDay(toSignals(S)); renderTimeline(plan);
+    render(tx("Morning, Rin. How did you sleep?", `${nextLine(plan)} Your band logged 5 h 12 min, about two hours under your usual.`) +
+      `<div class="chips row">${chip("sleep","rough","Rough",1,"😴")}${chip("sleep","ok","Okay",2,"🙂")}${chip("sleep","great","Great",3,"✨")}</div>` + prog(0));
+    bindSingle(v=>{ if(v==="rough"){S.shortNights=1;} if(v==="great"){S.sleepH=7.4;} if(v==="ok"){S.sleepH=6.6;} }, q2);
+    ask("sleep", `Morning, Rin. ${nextLine(plan)} How did you sleep?`);
+  }
+  function q2(){
+    render(tx("And how are you feeling right now?") + `<div class="chips row">${chip("m","low","Low",1,"🌧")}${chip("m","meh","So-so",2,"⛅")}${chip("m","good","Good",3,"☀️")}</div>` + prog(1));
+    bindSingle(v=>{ S.mood=v; }, q3);
+    ask("mood", "And how are you feeling right now?");
+  }
+  function q3(){
+    render(tx("Anything feel different in your body?","Pick any, then send.") +
+      `<div class="chips">${chip("s","headache","Headache",1)}${chip("s","puffy","Puffier face than usual",2)}${chip("s","palp","Heart racing or skipping",3)}${chip("s","none","Nothing new",4)}</div><button class="go" id="q3go">Send to Lumi</button>` + prog(2));
+    const tog=v=>{ if(v==="none"){S.sym.clear();S.sym.add("none"); react("none");} else {S.sym.delete("none"); S.sym.has(v)?S.sym.delete(v):(S.sym.add(v), react("sym"));}
+      flow.querySelectorAll('.chip[data-k="s"]').forEach(c=>c.setAttribute("aria-pressed",S.sym.has(c.dataset.v))); };
+    flow.querySelectorAll('.chip[data-k="s"]').forEach(b=>b.onclick=()=>tog(b.dataset.v));
+    const done=()=>{ keys(null); S.sym.delete("none"); render(""); runAgent(); };
+    $("q3go").onclick=done;
+    keys({"1":()=>tog("headache"),"2":()=>tog("puffy"),"3":()=>tog("palp"),"4":()=>tog("none"),"Enter":done});
+    ask("sym", "Anything feel different in your body? Say nothing new if not.");
+  }
+  const REACT = {rough:["concerned","Oh no, short night…"], low:["concerned","I’m here for you."], ok:["","Okay, noted."], meh:["","Thanks for telling me."],
+                 great:["happy","Yay, great sleep!"], good:["happy","Love to hear it!"], none:["happy","Nice!"], sym:["concerned","Thanks for telling me."]};
+  function react(v){ const r=REACT[v]; if(!r) return; mood(r[0]); lumiSay(r[1]); }
+  function bindSingle(apply,next){
+    const btns=[...flow.querySelectorAll(".chip")]; let done=false;
+    const pick=b=>{ if(done) return; done=true; apply(b.dataset.v); b.setAttribute("aria-pressed","true"); react(b.dataset.v); setTimeout(next,700); };
+    btns.forEach(b=>b.onclick=()=>pick(b));
+    keys(Object.fromEntries(btns.map((b,i)=>[String(i+1),()=>pick(b)])));
+  }
+  function resetPanel(){
+    Object.keys(zones).forEach(k=>zones[k]="idle"); paintZones(); zoneText={};
+    $("zoneInfo").className="zone-info"; $("zoneInfo").innerHTML=`<h3>Scan not run yet</h3><p>Pick a scenario or finish today’s check-in.</p>`;
+    $("inputs").innerHTML=`<dt>Status</dt><dd>Waiting for a check-in</dd>`;
+    $("verdict").dataset.sev="-1"; $("vSev").textContent="—"; $("vText").textContent="Pick a scenario, answer Lumi, or just tell it how you feel.";
+    $("checked").textContent=""; $("rules").innerHTML=""; $("acts").innerHTML="";
+    $("pb").innerHTML = ALL_RULES.map(r=>`<li><b>${r.id}</b><span>${r.title}</span></li>`).join("");
+    document.body.classList.remove("sev2","sev3");
+  }
+
+  /* ---------- scenarios ---------- */
+  function runScenario(k){
+    document.querySelectorAll(".scn").forEach(b=>b.setAttribute("aria-pressed", b.dataset.s===k));
+    tab("sToday"); keys(null); window.speechSynthesis?.cancel();
+    if (k==="free"){ startFree(); return; }
+    loadScenario(k); resetPanel(); setRest(""); M=[]; renderTimeline(agent.planDay(toSignals(S)));
+    render(tx(SCENARIOS[k].opener, k==="red"?"":"Cross-checking mind and body against your baseline."));
+    runAgent();
+  }
+  document.querySelectorAll(".scn").forEach(b=>b.onclick=()=>{ voiceFlow=false; awaiting=null; runScenario(b.dataset.s); });
+
+  /* ---------- talking to Lumi ---------- */
+  function parseSpeech(t){
+    const {signals, heard} = agent.parse(t, toSignals(S));
+    S.sym = new Set(signals.symptoms); S.sleepH = signals.sleepH; S.shortNights = signals.shortNights; S.mood = signals.mood;
+    if (!heard.length && /\b(good|great|fine|happy|okay|ok)\b/i.test(t)){ S.mood = S.mood || "good"; heard.push("Feeling fine"); }
+    return heard;
+  }
+  // Everything Lumi hears or reads (typed, push-to-talk, listening mode) goes through route().
+  function heard(text){ route(text); }
+  function freeForm(text){
+    if (!S) S=freshState();
+    keys(null);
+    if (!flow.innerHTML.trim()) render("");
+    append(tx(text,"","you","You"));
+    const cmd = missionCommand(text);
+    if (cmd){ append(tx(cmd,"","","Lumi logged")); speak(cmd); return; }
+    // Anything that isn't a command or a mission goes to the medical agent.
+    const found = parseSpeech(text);
+    append(tx(found.length ? "Heard: " + found.join(", ") + "." : "No new symptoms in that. Checking where you stand…", "", "", "Medical agent"));
+    if (!found.length) pendingAck = "I didn’t spot a new symptom in that, so here’s where you stand.";
+    runAgent({fast:true, noReward: !found.length});
+  }
+  $("sayForm").addEventListener("submit", e=>{ e.preventDefault(); const v=$("sayInput").value; $("sayInput").value=""; heard(v); });
+
+  /* ---------- voice in: push-to-talk, and listening mode with the "Lumi" wake word ---------- */
+  let dict=null, recog=null, listenRecog=null, pttActive=false, buffer="";
+  let listenMode=false, engine=null, preferBrowser=true, speakingNow=false;
+  let awaiting=null, awaitUntil=0, voiceFlow=false, pendingAck="", lastPrompt="", lastHelp="", bodyStep=-1, noAnswerT=null, reprompts=0, wokeUntil=0;
+  const mic=$("mic"), partial=$("partial"), listenBtn=$("listenBtn");
+  const WAKE=/\b(?:(?:hey|hi|ok|okay)\s+)?(lumi|lumie|loomy|lumy|loomie|lumee|lumia|lou me|lu me)\b[,.!?]?\s*/i;
+  const HINT="Say “Lumi, activate check-in” or “Lumi, body scan”";
+  const DEFAULT_PH=$("sayInput").placeholder;
+  const CMD_CHECKIN=/^(?:please\s+)?(?:activate|start|begin|open|run|do|let'?s(?:\s+do)?)?\s*(?:a|my|the|today'?s)?\s*(?:daily\s+|morning\s+)?check[\s-]?(?:in|up)\b|^(?:good\s+)?morning\b/i;
+  const CMD_BODY=/^(?:please\s+)?(?:activate|start|begin|open|run|do|let'?s(?:\s+do)?)?\s*(?:a|my|the)?\s*body[\s-]?scan\b/i;
+  const CMD_STOP=/^(stop|cancel|pause|never ?mind|quit|end( it)?|that'?s all)\b/i;
+  const CMD_REPEAT=/^(repeat|say (that|it) again|again|what did you say)\b/i;
+
+  function setPTT(on){ pttActive=on; mic.classList.toggle("on",on); mic.setAttribute("aria-label", on?"Stop listening":"Talk to Lumi"); if(on) mood("listening"); }
+  function setListenUI(on){
+    listenMode=on; listenBtn.setAttribute("aria-pressed",on);
+    listenBtn.setAttribute("aria-label", on?"Turn listening mode off":"Turn listening mode on");
+    document.body.classList.toggle("listening",on);
+    mic.hidden = on || !(dict||recog);
+    $("sayInput").placeholder = on ? HINT : DEFAULT_PH;
+    if (!on){ engine=null; partial.textContent=""; endFlow(); }
+  }
+  function endFlow(){
+    awaiting=null; voiceFlow=false; bodyStep=-1; clearTimeout(noAnswerT);
+    document.querySelectorAll(".zone.scanning").forEach(z=>z.classList.remove("scanning"));
+  }
+
+  // push-to-talk: one phrase per tap
+  mic.addEventListener("click", ()=>{
+    if (dict){
+      if (dict.active()){ dict.stop().catch(()=>{}); return; }
+      buffer=""; tts?.stop().catch(()=>{});
+      dict.start({language:"en"}).catch(e=>{ if(e && (e.code==="not_granted"||e.code==="unavailable")) mic.hidden=true; });
+      return;
+    }
+    if (recog){
+      if (pttActive){ recog.stop(); return; }
+      window.speechSynthesis?.cancel(); buffer="";
+      try{ recog.start(); setPTT(true); }catch(_){}
+    }
+  });
+
+  // listening mode: one tap to arm; then "Lumi, activate check-in" or "Lumi, body scan"
+  listenBtn.addEventListener("click", ()=>{
+    if (listenMode){ stopListening(); return; }
+    if (preferBrowser && listenRecog){
+      setListenUI(true); engine="browser"; window.speechSynthesis?.cancel();
+      try{ listenRecog.start(); }catch(_){}
+      lumiSay("I’m listening!"); chime();
+    } else if (dict){
+      setListenUI(true); engine="platform"; tts?.stop().catch(()=>{});
+      dict.start({language:"en"}).catch(e=>{ setListenUI(false); if(e && (e.code==="not_granted"||e.code==="unavailable")) listenBtn.hidden=true; });
+      lumiSay("Listening. I’ll answer on screen."); chime();
+    }
+  });
+  function stopListening(){
+    if (engine==="platform") dict?.stop().catch(()=>{}); else { try{ listenRecog?.stop(); }catch(_){} }
+    setListenUI(false); mood("");
+  }
+
+  function armNoAnswer(){
+    clearTimeout(noAnswerT); if(!listenMode) return;
+    noAnswerT=setTimeout(()=>{
+      if (!awaiting) return;
+      if (reprompts++>=1){ speak("I’ll pause here. Say Lumi when you’re ready."); endFlow(); return; }
+      speak("Still there? "+lastPrompt); awaitUntil=Date.now()+45000; armNoAnswer();
+    }, 25000);
+  }
+  function ask(kind, text, help){
+    if (!voiceFlow) return;
+    const line=(pendingAck?pendingAck+" ":"")+text; pendingAck="";
+    lastPrompt=text; lastHelp=help||""; awaiting=kind; awaitUntil=Date.now()+45000; reprompts=0;
+    speak(line); armNoAnswer();
+  }
+  function reprompt(help){ awaitUntil=Date.now()+45000; speak("Sorry, I didn’t catch that. "+(help||lastHelp||lastPrompt)); armNoAnswer(); }
+
+  /* --- voice check-in --- */
+  function startVoiceCheckin(){
+    endFlow(); voiceFlow=true;
+    document.querySelectorAll(".scn").forEach(b=>b.setAttribute("aria-pressed", b.dataset.s==="free"));
+    tab("sToday"); keys(null);
+    startFree();
+  }
+  const SLEEP_ACK={rough:"Got it, a short night.", ok:"Okay, an okay night.", great:"Great, a good night’s sleep."};
+  const MOOD_ACK={low:"Thanks for telling me.", meh:"Noted, so-so.", good:"Good to hear."};
+  function readSleep(t){
+    return /not bad/.test(t)?"ok" : /(not|n't) (well|great|good)|\bbad|rough|terrible|awful|poor|horrible|barely|tired|exhausted|short/.test(t)?"rough"
+      : /great|well|good|amazing|fantastic|perfect|long/.test(t)?"great" : /\b(ok|okay|fine|alright|all right|so.?so|average)\b/.test(t)?"ok" : null;
+  }
+  function readMood(t){
+    return /not bad/.test(t)?"meh" : /(not|n't) (good|great|well)|\b(low|sad|down|bad|stressed|anxious|awful|lonely|terrible|worried)\b/.test(t)?"low"
+      : /\b(so.?so|meh|ok|okay|alright|tired|fine)\b/.test(t)?"meh" : /\b(good|great|happy|well|amazing|excited|fantastic)\b/.test(t)?"good" : null;
+  }
+  const NO=/\b(no|nope|nothing|none|not really|all good|nothing new|i'?m (fine|good|ok|okay))\b/;
+  function answer(kind, text){
+    const t=text.toLowerCase();
+    if (kind==="sleep"){
+      const v=readSleep(t); if(!v) return reprompt("Was it rough, okay, or great?");
+      awaiting=null; pendingAck=SLEEP_ACK[v]; flow.querySelector(`.chip[data-k="sleep"][data-v="${v}"]`)?.click(); return;
+    }
+    if (kind==="mood"){
+      const v=readMood(t); if(!v) return reprompt("Are you feeling low, so-so, or good?");
+      awaiting=null; pendingAck=MOOD_ACK[v]; flow.querySelector(`.chip[data-k="m"][data-v="${v}"]`)?.click(); return;
+    }
+    if (kind==="sym"){
+      const { signals } = agent.parse(text, toSignals(S));
+      const found = signals.symptoms.filter(x=>!S.sym.has(x));
+      if (found.length){ found.forEach(x=>S.sym.add(x)); S.sym.delete("none"); pendingAck="Got it: "+found.map(x=>SYM_LABEL[x].toLowerCase()).join(", ")+"."; }
+      else if (NO.test(t)){ S.sym.clear(); pendingAck="Okay, nothing new."; }
+      else return reprompt("Any headache, puffy face, or heart racing? Or say nothing new.");
+      awaiting=null; $("q3go")?.click(); return;
+    }
+  }
+
+  /* --- voice body scan: zone by zone --- */
+  const BODY=[
+    {zone:"head",  q:"Head and eyes first. Any headache, or changes in your vision?", help:"Say headache, vision change, or no.", severe:["severeHead","neuro"]},
+    {zone:"neck",  q:"Now your neck. Any swelling there, or does your face feel puffier than usual?", help:"Say neck swelling, puffy face, or no.", severe:[]},
+    {zone:"heart", q:"Heart and lungs. Any racing heartbeat, chest pain, or trouble breathing?", help:"Say heart racing, chest pain, trouble breathing, or no.", severe:["chest","breath"]},
+    {zone:"mind",  q:"Last one: mind and sleep. How did you sleep, and how are you feeling?", help:"For example: slept badly, feeling okay.", severe:[]}
+  ];
+  const RED=["chest","breath","severeHead","neuro"];
+  function startBodyScan(){
+    endFlow(); voiceFlow=true;
+    document.querySelectorAll(".scn").forEach(b=>b.setAttribute("aria-pressed", b.dataset.s==="free"));
+    S=freshState(); S.sleepH=BASE_SLEEP; $("dDay").textContent=S.day; resetPanel(); setRest(""); M=[]; keys(null);
+    renderTimeline(agent.planDay(toSignals(S)));
+    render(tx("Body scan in progress.","Answer each question out loud. Lumi colors the map as you go."));
+    tab("sBody"); bodyStep=0; pendingAck="Starting your body scan."; askBody();
+  }
+  function askBody(){
+    const st=BODY[bodyStep];
+    document.querySelectorAll(".zone").forEach(z=>z.classList.toggle("scanning", z.dataset.z===st.zone));
+    const zi=$("zoneInfo"); zi.className="zone-info";
+    zi.innerHTML=`<h3>Scanning: ${ZTITLE[st.zone]} · ${bodyStep+1} of ${BODY.length}</h3><p>${st.q}</p>`;
+    mood("listening");
+    ask("body", st.q, st.help);
+  }
+  function answerBody(text){
+    const st=BODY[bodyStep], t=text.toLowerCase();
+    const { signals } = agent.parse(text, toSignals(S));
+    let ack="";
+    if (st.zone==="mind"){
+      let got=false;
+      if (signals.shortNights>S.shortNights || signals.sleepH<S.sleepH){ S.sleepH=signals.sleepH; S.shortNights=signals.shortNights; got=true; }
+      else if (/slept|sleep|night/.test(t)){ const v=readSleep(t); if(v){ S.sleepH = v==="rough"?5.2 : v==="ok"?6.6 : 7.4; if(v==="rough") S.shortNights=Math.max(1,S.shortNights); got=true; } }
+      const feel = t.replace(/.*?(feel|feeling|mood)/,""); const m = readMood(feel!==t?feel:t);
+      if (m && (feel!==t || !got)){ S.mood=m; got=true; }
+      if (!got) return reprompt(st.help);
+      const bad = S.sleepH<BASE_SLEEP-1 || S.mood==="low";
+      zones.mind = bad ? "watch" : "ok";
+      ack = bad ? "Thanks. I’ll keep an eye on that." : "Sounds good.";
+    } else {
+      const found = signals.symptoms.filter(x=>!S.sym.has(x));
+      if (found.length){ found.forEach(x=>S.sym.add(x)); ack="Got it: "+found.map(x=>SYM_LABEL[x].toLowerCase()).join(", ")+"."; }
+      else if (NO.test(t)) ack="Okay, all clear.";
+      else if (/\byes\b/.test(t)) return reprompt("Which one? "+st.help);
+      else return reprompt(st.help);
+      const inZone = { head:["headache","vision","severeHead","neuro"], neck:["neck","puffy"], heart:["palp","chest","breath"] }[st.zone];
+      const hit = [...S.sym].filter(x=>inZone.includes(x));
+      zones[st.zone] = hit.some(x=>RED.includes(x)) ? "alert" : hit.length ? "watch" : "ok";
+    }
+    paintZones();
+    document.querySelector(`.zone[data-z="${st.zone}"]`)?.classList.remove("scanning");
+    awaiting=null; clearTimeout(noAnswerT); pendingAck=ack;
+    react(zones[st.zone]==="ok" ? "none" : "sym");
+    if ([...S.sym].some(x=>RED.includes(x))){ finishBodyScan(); return; }   // red flag: stop the scan and act now
+    bodyStep++;
+    if (bodyStep<BODY.length) setTimeout(askBody, 450); else finishBodyScan();
+  }
+  function finishBodyScan(){
+    bodyStep=-1; awaiting=null;
+    document.querySelectorAll(".zone.scanning").forEach(z=>z.classList.remove("scanning"));
+    const zi=$("zoneInfo"); zi.className="zone-info"; zi.innerHTML=`<h3>Scan complete</h3><p>Checking the playbook…</p>`;
+    runAgent({fast:true, after:"body"});
+  }
+
+  /* --- router: commands first, then the current question, then free talk --- */
+  function route(text){
+    text=(text||"").trim(); if(!text) return;
+    if (CMD_CHECKIN.test(text)){ startVoiceCheckin(); return; }
+    if (CMD_BODY.test(text)){ startBodyScan(); return; }
+    if (CMD_STOP.test(text)){ const was=voiceFlow; endFlow(); if(was) speak("Okay, paused. Say Lumi when you need me."); return; }
+    if (CMD_REPEAT.test(text) && awaiting){ speak(lastPrompt); armNoAnswer(); return; }
+    if (awaiting && Date.now()<awaitUntil){
+      partial.textContent=""; clearTimeout(noAnswerT);
+      if (awaiting==="body") answerBody(text); else answer(awaiting, text);
+      return;
+    }
+    freeForm(text);
+  }
+  function handleListen(text){
+    text=(text||"").trim(); if(!text) return;
+    const m=text.match(WAKE);
+    if (m){
+      const rest=text.slice(m.index+m[0].length).trim();
+      partial.textContent=""; mood("listening");
+      if (!rest){ wokeUntil=Date.now()+8000; lumiSay("Yes?"); chime(); return; }   // "Lumi" alone: wait for the command
+      route(rest); return;
+    }
+    if (Date.now()<wokeUntil){ wokeUntil=0; route(text); return; }
+    if (awaiting && Date.now()<awaitUntil){ route(text); return; }   // answers don't need the wake word
+    partial.textContent=`Say “Lumi” first · heard “${text}”`;
+  }
+  window.__vw = { handleListen };  // test hook: feed text as if it were heard
+
+  function wireBrowserRecognition(){
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return false;
+    recog = new SR(); recog.lang="en-US"; recog.interimResults=true; recog.continuous=false;
+    recog.onresult = e=>{ let fin="", inter=""; for(const r of e.results){ (r.isFinal?fin+=r[0].transcript:inter+=r[0].transcript); } partial.textContent=inter; if(fin) buffer=fin; };
+    recog.onend = ()=>{ setPTT(false); partial.textContent=""; heard(buffer); buffer=""; };
+    recog.onerror = e=>{ setPTT(false); partial.textContent=""; if(e.error==="not-allowed"){ recog=null; mic.hidden=!dict; } };
+
+    listenRecog = new SR(); listenRecog.lang="en-US"; listenRecog.interimResults=true; listenRecog.continuous=true;
+    listenRecog.onresult = e=>{
+      let inter="";
+      for (let i=e.resultIndex;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) handleListen(r[0].transcript); else inter+=r[0].transcript; }
+      if (inter) partial.textContent=inter;
+    };
+    listenRecog.onend = ()=>{ if(listenMode && engine==="browser" && !speakingNow) setTimeout(()=>{ try{ listenRecog.start(); }catch(_){} }, 250); };
+    listenRecog.onerror = e=>{
+      if (e.error==="not-allowed"||e.error==="service-not-allowed"){
+        preferBrowser=false; setListenUI(false);
+        if (dict){ lumiSay("Tap 👂 again to use claude.ai dictation."); listenBtn.hidden=false; } else listenBtn.hidden=true;
+      }
+    };
+    mic.hidden=false; listenBtn.hidden=false;
+    return true;
+  }
+
+  /* ---------- tabs, breathing, view switch ---------- */
+  function tab(id){
+    document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on", s.id===id));
+    document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-current", b.dataset.tab===id));
+  }
+  document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>tab(b.dataset.tab));
+
+
+
+  /* ---------- capabilities (claude.ai) with browser fallback ---------- */
+  // Browser speech recognition (Chrome) allows a real spoken back-and-forth; claude.ai dictation is the fallback.
+  const browserMic = wireBrowserRecognition();
+  (async ()=>{
+    if (window.claude && typeof window.claude.use==="function"){
+      window.__claudeView = true;
+      const [d,t] = await Promise.all([claude.use("dictation").catch(()=>null), claude.use("tts").catch(()=>null)]);
+      tts = t;
+      if (d){
+        dict=d; listenBtn.hidden=false; if(!browserMic) mic.hidden=false;
+        d.onPartial(({text})=>{ if(text) partial.textContent=text; });
+        d.onFinal(({text})=>{ if (listenMode && engine==="platform") handleListen(text); else buffer += text; });
+        d.onState(({state})=>{
+          if (listenMode && engine==="platform"){ if(state==="idle"){ setListenUI(false); mood(""); } return; }
+          if (state==="listening"||state==="starting") setPTT(true);
+          if (state==="idle"){ setPTT(false); partial.textContent=""; const b=buffer; buffer=""; if(b.trim()) heard(b); else mood(""); }
+        });
+        if (!browserMic) $("lchip").textContent = "Listening for “Lumi” · replies on screen";
+      }
+      if (!t) window.__claudeView = false;
+    }
+  })();
+
+  /* ---------- stars ---------- */
+  const cv=$("stars"), cx=cv.getContext("2d"); let st=[],W,H;
+  function rs(){ const d=Math.min(2,devicePixelRatio||1); W=innerWidth; H=innerHeight; cv.width=W*d; cv.height=H*d; cx.setTransform(d,0,0,d,0,0);
+    st=Array.from({length:Math.round(W*H/6000)},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.2+.2,p:Math.random()*6.28,s:Math.random()*.12+.02})); }
+  addEventListener("resize",rs); rs();
+  (function tw(t){ cx.clearRect(0,0,W,H);
+    for(const s of st){ const a=.3+.4*Math.sin(s.p+(t||0)/1400); cx.fillStyle=`rgba(200,230,245,${a})`; cx.beginPath(); cx.arc(s.x,s.y,s.r,0,6.28); cx.fill(); if(!reduce){ s.x-=s.s; if(s.x<0) s.x=W; } }
+    requestAnimationFrame(tw); })();
+
+  resetPanel();
+  startFree();
+})();
+</script>
+</body>
+</html>

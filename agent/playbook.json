@@ -1,0 +1,1409 @@
+{
+  "meta": {
+    "name": "VesselWatch flight medicine playbook",
+    "version": "0.4.0",
+    "status": "draft - pending clinician review",
+    "updated": "2026-11-14",
+    "scope": "Decision support for astronaut circulation, heart and wellbeing self-checks on long missions. Not a diagnostic device.",
+    "policy": [
+      "No drug doses. Treatment rules point to the protocol, not milligrams.",
+      "Every rule names its evidence level. Demo thresholds must be replaced by clinician-set values before real use.",
+      "The crew medical officer sees only what they need to act. Mood and sleep stay private unless the crew member chooses to share."
+    ],
+    "severityNames": [
+      "Green",
+      "Green",
+      "Amber",
+      "Red"
+    ],
+    "severityMeaning": [
+      "At baseline. Routine day.",
+      "Self-care. Nothing is shared.",
+      "Needs a closer look. The medical officer is told what to do, nothing more.",
+      "Act now. The medical officer and Earth are told."
+    ],
+    "roles": {
+      "crew": "You",
+      "cmo": "Crew medical officer",
+      "cmd": "Commander",
+      "earth": "Earth, 18+ min"
+    },
+    "evidenceLevels": {
+      "nasa-protocol": "Published NASA standard or technical brief",
+      "clinical-red-flag": "Standard emergency warning sign in clinical practice",
+      "peer-reviewed": "Peer-reviewed study, not a NASA operational rule",
+      "standard-practice": "Long-standing spaceflight operational practice",
+      "demo-threshold": "Placeholder threshold chosen for the demo; needs a clinician's value"
+    },
+    "sources": {
+      "MTB007": "NASA OCHMO-MTB-007, Venous Thrombosis in Spaceflight, Jan 2026",
+      "STD100": "NASA OCHMO-STD-100.1A, requirement 6041: jugular screening L-12/3 m, L+30 d, L+60 d, R-42 d, as clinically indicated",
+      "MG2019": "Marshall-Goebel et al., JAMA Network Open 2019: 6 of 11 ISS crew with stagnant or retrograde jugular flow, 1 clot",
+      "AC2020": "Aunon-Chancellor et al., NEJM 2020: first in-flight jugular clot, treated on orbit",
+      "MTB001": "NASA OCHMO-MTB-001, Spaceflight Associated Neuro-ocular Syndrome",
+      "GH2000": "Ghiadoni et al., Circulation 2000: brief mental stress reduced artery dilation for up to about 4 hours",
+      "MIL2005": "Miller et al., University of Maryland 2005-2011: laughter and joyful music increased artery dilation in small studies",
+      "MIR": "Barratt and Hamilton, cited in Grenon et al. 2005: arrhythmias were the second most common medical issue on Mir",
+      "MIR1997": "Mir 1997 Progress collision; NASA human factors analysis lists fatigue as a contributing factor",
+      "MARS500": "Basner et al., PNAS 2013: gradual, individual decline in activity and sleep over 520 days",
+      "TR2022": "Trudel et al., Nature Medicine 2022: about 54% more red blood cells destroyed in space",
+      "SPRINT": "NASA SPRINT study: shorter, higher-intensity exercise maintained fitness in flight",
+      "CVRISK": "NASA HRP Risk of Cardiovascular Adaptations Contributing to Adverse Mission Performance and Health Outcomes",
+      "TB031": "NASA OCHMO-TB-031, Exercise overview",
+      "OSD575": "NASA OSDR OSD-575, SpaceX Inspiration4 blood serum data: comprehensive metabolic panel, cardiovascular serum biomarkers and cytokine panels, 4 civilian crew, pre-flight and post-flight draws",
+      "ISSEX": "ISS crews schedule about 2 hours of exercise a day (resistive, treadmill and bike), per NASA exercise guidance"
+    },
+    "datasets": [
+      {
+        "id": "OSD-575",
+        "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-575",
+        "mission": "SpaceX Inspiration4 (Sept 2021, 3 days, 4 civilian crew)",
+        "contents": "Comprehensive metabolic panel; cardiovascular serum biomarker panel; immune and inflammatory cytokine panels",
+        "timepoints": "Pre-flight L-92, L-44, L-3; post-flight R+1, R+45, R+82, R+194 (as summarized by a third-party repository; confirm on the OSDR page)",
+        "howUsed": "Shows the design the agent follows: several pre-flight draws give each person their own baseline, and later draws are compared against it. The data is not used to set thresholds.",
+        "limits": [
+          "No in-flight samples",
+          "Three-day mission, not long duration",
+          "Four people, not career astronauts",
+          "Not validated for clot prediction"
+        ]
+      }
+    ]
+  },
+  "signals": {
+    "day": "Mission flight day (number)",
+    "sleepH": "Last night's sleep in hours (wearable)",
+    "baselineSleepH": "This person's usual sleep in hours",
+    "shortNights": "Consecutive nights more than 1 h under baseline",
+    "mood": "good | meh | low",
+    "lowDays": "Consecutive days with low mood",
+    "symptoms": "List of: headache, puffy, neck, palp, vision, chest, breath, severeHead, neuro, exertionFatigue",
+    "scan.day": "Flight day of the last jugular ultrasound",
+    "scan.result": "antegrade | reduced | retrograde | stagnant | thrombus",
+    "risk.family": "Unprovoked clot in an immediate family member (true/false)",
+    "risk.thrombophilia": "Positive thrombophilia screen (true/false)",
+    "risk.hormone": "Using a higher-risk hormone therapy (true/false)",
+    "evaIn": "Days until the next spacewalk",
+    "landingIn": "Days until landing",
+    "exerciseMin7d": "Average exercise minutes per day over the last 7 days",
+    "restingHR": "Resting heart rate today (bpm)",
+    "baselineHR": "This person's usual resting heart rate (bpm)",
+    "hrHighDays": "Consecutive days with resting HR 10+ bpm over baseline",
+    "anticoag": "none | treatment | prophylaxis",
+    "anticoagCoverageDays": "Days of anticoagulant on board for this crew member",
+    "anticoagCourseDays": "Days still needed to finish the planned course",
+    "labsOutOfRange": "Lab markers outside this person's own pre-flight range at a scheduled blood draw (list of marker names)",
+    "fired": "Set by planDay(): ids of rules that matched today, usable in maintenance conditions"
+  },
+  "rules": [
+    {
+      "id": "RF-1",
+      "severity": 3,
+      "evidenceLevel": "clinical-red-flag",
+      "sources": [
+        "STD100"
+      ],
+      "title": "Chest pain or sudden breathlessness",
+      "when": {
+        "any": [
+          {
+            "has": [
+              "symptoms",
+              "chest"
+            ]
+          },
+          {
+            "has": [
+              "symptoms",
+              "breath"
+            ]
+          }
+        ]
+      },
+      "why": "Could mean a clot has travelled to the lungs, or a heart problem. These never wait for the next check-in.",
+      "actions": [
+        {
+          "text": "Stop what you're doing and stay still",
+          "who": "crew",
+          "level": 3
+        },
+        {
+          "text": "Medical officer comes to you now: vitals, oxygen level, heart tracing",
+          "who": "cmo",
+          "level": 3
+        },
+        {
+          "text": "Emergency call with Earth flight surgeons",
+          "who": "earth",
+          "level": 3
+        }
+      ],
+      "say": "This needs your medical officer right now. Stop what you're doing and stay where you are. Your medical officer is on the way, and Earth is being called."
+    },
+    {
+      "id": "RF-2",
+      "severity": 3,
+      "evidenceLevel": "clinical-red-flag",
+      "sources": [],
+      "title": "Sudden severe headache, vision loss, weakness or slurred speech",
+      "when": {
+        "any": [
+          {
+            "has": [
+              "symptoms",
+              "severeHead"
+            ]
+          },
+          {
+            "has": [
+              "symptoms",
+              "neuro"
+            ]
+          }
+        ]
+      },
+      "why": "Signs of a possible brain emergency, including a clot in the brain's own veins. Time matters.",
+      "actions": [
+        {
+          "text": "Medical officer runs a quick neuro check with you now",
+          "who": "cmo",
+          "level": 3
+        },
+        {
+          "text": "Emergency call with Earth flight surgeons",
+          "who": "earth",
+          "level": 3
+        },
+        {
+          "text": "Hold all critical tasks",
+          "who": "cmd",
+          "level": 3
+        }
+      ],
+      "say": "These signs need checking right now. Stay where you are. Your medical officer is coming, and Earth is being called."
+    },
+    {
+      "id": "VT-1",
+      "severity": 3,
+      "evidenceLevel": "nasa-protocol",
+      "sources": [
+        "MTB007",
+        "AC2020"
+      ],
+      "title": "Suspected clot on the neck scan",
+      "when": {
+        "eq": [
+          "scan.result",
+          "thrombus"
+        ]
+      },
+      "why": "NASA's protocol starts treatment as soon as a clot is seen, symptoms or not. The first ISS case had no symptoms at all.",
+      "actions": [
+        {
+          "text": "Start NASA clot treatment protocol with the medical officer",
+          "who": "cmo",
+          "level": 3
+        },
+        {
+          "text": "No spacewalks or resistive exercise for at least 30 days",
+          "who": "cmd",
+          "level": 3
+        },
+        {
+          "text": "Images and plan to Earth flight surgeons, priority",
+          "who": "earth",
+          "level": 3
+        },
+        {
+          "text": "Check anticoagulant stock covers the full course",
+          "who": "cmo",
+          "level": 2
+        }
+      ],
+      "say": "Your scan shows a possible clot in a neck vein. You're stable, and there is a clear plan for this. Your medical officer will start the treatment protocol with you, and your spacewalk is on hold."
+    },
+    {
+      "id": "MED-1",
+      "severity": 2,
+      "evidenceLevel": "nasa-protocol",
+      "sources": [
+        "AC2020",
+        "MTB007"
+      ],
+      "title": "Anticoagulant stock won't cover the course",
+      "when": {
+        "all": [
+          {
+            "neq": [
+              "anticoag",
+              "none"
+            ]
+          },
+          {
+            "lt": [
+              "anticoagCoverageDays",
+              {
+                "path": "anticoagCourseDays"
+              }
+            ]
+          }
+        ]
+      },
+      "why": "In the 2019 ISS case, therapy depended on a cargo ship bringing more medicine. On a Mars transit there is no resupply.",
+      "actions": [
+        {
+          "text": "Flight surgeon plans coverage for the full course",
+          "who": "earth",
+          "level": 2
+        },
+        {
+          "text": "Recount stock and log it",
+          "who": "cmo",
+          "level": 2
+        }
+      ],
+      "say": "Your medicine supply is shorter than your planned course, so your flight surgeon is planning how to cover it."
+    },
+    {
+      "id": "LD-2",
+      "severity": 2,
+      "evidenceLevel": "nasa-protocol",
+      "sources": [
+        "MTB007"
+      ],
+      "title": "On an anticoagulant with landing in 2 days or less",
+      "when": {
+        "all": [
+          {
+            "neq": [
+              "anticoag",
+              "none"
+            ]
+          },
+          {
+            "lte": [
+              "landingIn",
+              2
+            ]
+          }
+        ]
+      },
+      "why": "NASA recommends pausing anticoagulants before landing in case of injury: 48 hours for treatment, 24 hours for prevention.",
+      "actions": [
+        {
+          "text": "Plan the pre-landing pause with the flight surgeon",
+          "who": "earth",
+          "level": 2
+        },
+        {
+          "text": "Confirm timing with the crew member",
+          "who": "cmo",
+          "level": 2
+        }
+      ],
+      "say": "Landing is close, so your medical officer will confirm when to pause your medicine, as NASA recommends."
+    },
+    {
+      "id": "VT-2",
+      "severity": 2,
+      "evidenceLevel": "nasa-protocol",
+      "sources": [
+        "MTB007",
+        "STD100"
+      ],
+      "title": "Head, face or neck symptoms, no scan today",
+      "when": {
+        "all": [
+          {
+            "any": [
+              {
+                "has": [
+                  "symptoms",
+                  "headache"
+                ]
+              },
+              {
+                "has": [
+                  "symptoms",
+                  "puffy"
+                ]
+              },
+              {
+                "has": [
+                  "symptoms",
+                  "neck"
+                ]
+              }
+            ]
+          },
+          {
+            "neq": [
+              "scan.day",
+              {
+                "path": "day"
+              }
+            ]
+          }
+        ]
+      },
+      "why": "NASA weighs headache, neck swelling and facial puffiness beyond normal adaptation as possible signs of altered neck-vein flow. A scan answers it; guessing doesn't.",
+      "actions": [
+        {
+          "text": "Neck ultrasound within 24 hours",
+          "who": "cmo",
+          "level": 2
+        }
+      ],
+      "say": "In space, a headache or a puffier face can come from how blood moves in your neck, and you wouldn't feel that. So I've asked your medical officer for a quick scan today. Nothing else changes."
+    },
+    {
+      "id": "VT-3",
+      "severity": 2,
+      "evidenceLevel": "nasa-protocol",
+      "sources": [
+        "MTB007"
+      ],
+      "title": "Stagnant flow plus a personal risk factor",
+      "when": {
+        "all": [
+          {
+            "eq": [
+              "scan.result",
+              "stagnant"
+            ]
+          },
+          {
+            "any": [
+              {
+                "eq": [
+                  "risk.family",
+                  true
+                ]
+              },
+              {
+                "eq": [
+                  "risk.thrombophilia",
+                  true
+                ]
+              },
+              {
+                "eq": [
+                  "risk.hormone",
+                  true
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "why": "NASA pairs stagnant flow with family history, thrombophilia or higher-risk hormones for preventive treatment.",
+      "actions": [
+        {
+          "text": "Flight surgeon reviews preventive protocol",
+          "who": "earth",
+          "level": 2
+        },
+        {
+          "text": "Scan more often",
+          "who": "cmo",
+          "level": 2
+        }
+      ],
+      "say": "Your last scan showed slow blood flow in a neck vein, and your records show a risk factor. Your flight surgeon is reviewing a preventive plan."
+    },
+    {
+      "id": "VT-4",
+      "severity": 2,
+      "evidenceLevel": "nasa-protocol",
+      "sources": [
+        "MTB007",
+        "MG2019"
+      ],
+      "title": "Stagnant flow, no risk factors",
+      "when": {
+        "all": [
+          {
+            "eq": [
+              "scan.result",
+              "stagnant"
+            ]
+          },
+          {
+            "not": {
+              "any": [
+                {
+                  "eq": [
+                    "risk.family",
+                    true
+                  ]
+                },
+                {
+                  "eq": [
+                    "risk.thrombophilia",
+                    true
+                  ]
+                },
+                {
+                  "eq": [
+                    "risk.hormone",
+                    true
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "why": "Per NASA, this means closer watching and hydration, not medication.",
+      "actions": [
+        {
+          "text": "More frequent neck scans",
+          "who": "cmo",
+          "level": 2
+        },
+        {
+          "text": "Hydration goal added to your day",
+          "who": "crew",
+          "level": 1
+        },
+        {
+          "text": "Ask Earth about fluid-shift countermeasures such as lower body negative pressure or thigh cuffs",
+          "who": "earth",
+          "level": 1,
+          "tag": "experimental"
+        }
+      ],
+      "say": "Your last scan showed slow flow in a neck vein. No medicine needed. We'll scan more often, and I'll remind you to drink more water."
+    },
+    {
+      "id": "CV-1",
+      "severity": 2,
+      "evidenceLevel": "peer-reviewed",
+      "sources": [
+        "MIR"
+      ],
+      "title": "Heart racing or skipping",
+      "when": {
+        "has": [
+          "symptoms",
+          "palp"
+        ]
+      },
+      "why": "Rhythm problems were the second most common medical issue on Mir, and several were silent. A recording settles it.",
+      "actions": [
+        {
+          "text": "Medical officer reviews 24 h wearable heart recording",
+          "who": "cmo",
+          "level": 2
+        }
+      ],
+      "say": "I've asked your medical officer to look at your heart recording from the last day. If it gets worse, or you feel faint, tell me straight away."
+    },
+    {
+      "id": "CV-2",
+      "severity": 2,
+      "evidenceLevel": "demo-threshold",
+      "sources": [
+        "CVRISK"
+      ],
+      "title": "Resting heart rate above your usual for 3 days",
+      "when": {
+        "gte": [
+          "hrHighDays",
+          3
+        ]
+      },
+      "why": "A steady rise can come from dehydration, deconditioning, poor sleep, stress or infection. Worth a look before it becomes a problem.",
+      "actions": [
+        {
+          "text": "Medical officer reviews trend, hydration and sleep",
+          "who": "cmo",
+          "level": 2
+        }
+      ],
+      "say": "Your resting heart rate has been higher than usual for a few days. I've asked your medical officer to take a look."
+    },
+    {
+      "id": "NO-1",
+      "severity": 2,
+      "evidenceLevel": "nasa-protocol",
+      "sources": [
+        "MTB001"
+      ],
+      "title": "Gradual vision change",
+      "when": {
+        "all": [
+          {
+            "has": [
+              "symptoms",
+              "vision"
+            ]
+          },
+          {
+            "not": {
+              "has": [
+                "symptoms",
+                "neuro"
+              ]
+            }
+          }
+        ]
+      },
+      "why": "Most long-duration crew show some eye changes (SANS), usually without other symptoms. It's checked with eye exams.",
+      "actions": [
+        {
+          "text": "Eye exam and vision self-test this week",
+          "who": "cmo",
+          "level": 2
+        }
+      ],
+      "say": "Vision changes are common on long missions. I've booked an eye check with your medical officer this week."
+    },
+    {
+      "id": "OP-1",
+      "severity": 2,
+      "evidenceLevel": "peer-reviewed",
+      "sources": [
+        "MIR1997"
+      ],
+      "title": "Spacewalk within 3 days while not at baseline",
+      "when": {
+        "all": [
+          {
+            "lte": [
+              "evaIn",
+              3
+            ]
+          },
+          {
+            "neq": [
+              "scan.result",
+              "thrombus"
+            ]
+          },
+          {
+            "any": [
+              {
+                "gte": [
+                  "shortNights",
+                  2
+                ]
+              },
+              {
+                "gt": [
+                  "symptoms.length",
+                  0
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "why": "Fatigue came before the 1997 Mir collision. Critical tasks get a go or no-go check when someone isn't at their baseline.",
+      "actions": [
+        {
+          "text": "Go or no-go review with commander and medical officer",
+          "who": "cmd",
+          "level": 2
+        }
+      ],
+      "say": "Your spacewalk is close, so the commander and your medical officer will do a quick go or no-go check with you."
+    },
+    {
+      "id": "LAB-1",
+      "severity": 2,
+      "evidenceLevel": "demo-threshold",
+      "sources": [
+        "OSD575",
+        "STD100"
+      ],
+      "title": "Lab marker outside your own pre-flight range",
+      "when": {
+        "gt": [
+          "labsOutOfRange.length",
+          0
+        ]
+      },
+      "why": "Blood markers vary a lot between people, so each result is compared with that person's own pre-flight draws, the design used in the Inspiration4 blood studies. One result out of range is a reason to look, not a diagnosis.",
+      "actions": [
+        {
+          "text": "Flight surgeon reviews the result against your pre-flight baseline",
+          "who": "earth",
+          "level": 2
+        },
+        {
+          "text": "Repeat the draw if the flight surgeon asks",
+          "who": "cmo",
+          "level": 2
+        }
+      ],
+      "say": "One of your blood results is outside your own usual range. Your flight surgeon will compare it with your pre-flight tests. One result on its own isn't a diagnosis."
+    },
+    {
+      "id": "LD-1",
+      "severity": 1,
+      "evidenceLevel": "standard-practice",
+      "sources": [
+        "CVRISK"
+      ],
+      "title": "Landing within 7 days",
+      "when": {
+        "lte": [
+          "landingIn",
+          7
+        ]
+      },
+      "why": "Back in gravity, blood pools in the legs and people can feel faint on standing. Fluid loading and compression garments help, and on Mars there is no recovery team.",
+      "actions": [
+        {
+          "text": "Landing checklist: fluid loading plan and compression garment fit check",
+          "who": "crew",
+          "level": 1
+        },
+        {
+          "text": "Stand test before landing day",
+          "who": "cmo",
+          "level": 1
+        }
+      ],
+      "say": "Landing is under a week away. Let's start your landing checklist: a fluid plan and a fit check for your compression garment."
+    },
+    {
+      "id": "EX-1",
+      "severity": 1,
+      "evidenceLevel": "demo-threshold",
+      "sources": [
+        "SPRINT",
+        "TB031"
+      ],
+      "title": "Exercise well under plan this week",
+      "when": {
+        "lt": [
+          "exerciseMin7d",
+          60
+        ]
+      },
+      "why": "Without daily exercise the heart and muscles decondition. Shorter, harder sessions maintained fitness in NASA's SPRINT study.",
+      "actions": [
+        {
+          "text": "Swap in a short high-intensity session tomorrow",
+          "who": "crew",
+          "level": 1
+        }
+      ],
+      "say": "Your exercise has been light this week. Want to try a shorter, harder session tomorrow? It still counts."
+    },
+    {
+      "id": "AN-1",
+      "severity": 1,
+      "evidenceLevel": "peer-reviewed",
+      "sources": [
+        "TR2022"
+      ],
+      "title": "Unusual tiredness on exertion after 3+ months",
+      "when": {
+        "all": [
+          {
+            "has": [
+              "symptoms",
+              "exertionFatigue"
+            ]
+          },
+          {
+            "gte": [
+              "day",
+              90
+            ]
+          }
+        ]
+      },
+      "why": "The body destroys more red blood cells in space, so anemia is possible on long missions.",
+      "actions": [
+        {
+          "text": "Add a blood count to the next scheduled blood draw",
+          "who": "cmo",
+          "level": 1
+        }
+      ],
+      "say": "Feeling more tired than usual during exercise is worth checking after months in space. I've added a blood count to your next scheduled blood test."
+    },
+    {
+      "id": "BH-1",
+      "severity": 1,
+      "evidenceLevel": "peer-reviewed",
+      "sources": [
+        "MARS500"
+      ],
+      "title": "Three or more rough nights or low days",
+      "when": {
+        "any": [
+          {
+            "gte": [
+              "shortNights",
+              3
+            ]
+          },
+          {
+            "gte": [
+              "lowDays",
+              3
+            ]
+          }
+        ]
+      },
+      "why": "Sleep and mood slide gradually and differently for each person. Early signals come before crises, so this stays private but gets offered support.",
+      "actions": [
+        {
+          "text": "Pre-sleep lighting and a wind-down routine tonight",
+          "who": "crew",
+          "level": 1
+        },
+        {
+          "text": "Offer a private note to the Earth psychology team",
+          "who": "earth",
+          "level": 1
+        }
+      ],
+      "say": "That's a few rough nights in a row. Want me to send a private note to the support team on Earth? Only they would see it."
+    },
+    {
+      "id": "WB-1",
+      "severity": 1,
+      "evidenceLevel": "peer-reviewed",
+      "sources": [
+        "GH2000",
+        "MIL2005"
+      ],
+      "title": "One short night or a low mood today",
+      "when": {
+        "all": [
+          {
+            "any": [
+              {
+                "lt": [
+                  "sleepH",
+                  {
+                    "path": "baselineSleepH",
+                    "add": -1
+                  }
+                ]
+              },
+              {
+                "eq": [
+                  "mood",
+                  "low"
+                ]
+              }
+            ]
+          },
+          {
+            "lt": [
+              "shortNights",
+              3
+            ]
+          },
+          {
+            "lt": [
+              "lowDays",
+              3
+            ]
+          }
+        ]
+      },
+      "why": "Brief stress and short sleep make arteries less able to relax for a few hours. Noticed early, it stays private and just shapes the day.",
+      "actions": [
+        {
+          "text": "Lighter start today if the schedule allows",
+          "who": "crew",
+          "level": 1
+        }
+      ],
+      "say": "Rough night. That happens a lot out here. Go a bit easier this morning if you can, and tell me if anything else feels off."
+    }
+  ],
+  "fallback": {
+    "id": "WB-0",
+    "severity": 0,
+    "evidenceLevel": "nasa-protocol",
+    "sources": [
+      "STD100"
+    ],
+    "title": "At your baseline",
+    "why": "Nothing new. Routine schedule, and a small habit for good mood.",
+    "actions": [
+      {
+        "text": "Routine day. Next neck scan on the standard schedule",
+        "who": "crew",
+        "level": 0
+      },
+      {
+        "text": "Bank one good moment for a harder day",
+        "who": "crew",
+        "level": 0
+      }
+    ],
+    "say": "Everything looks like your usual. Nice. Want to bank one good moment for a harder day?"
+  },
+  "lexicon": {
+    "symptoms": [
+      {
+        "symptom": "severeHead",
+        "label": "Sudden severe headache",
+        "patterns": [
+          "worst headache",
+          "sudden (severe |bad )?headache",
+          "thunderclap"
+        ]
+      },
+      {
+        "symptom": "headache",
+        "label": "Headache",
+        "patterns": [
+          "headache",
+          "head (hurts|aches|is pounding)",
+          "migraine"
+        ],
+        "unless": "severeHead"
+      },
+      {
+        "symptom": "puffy",
+        "label": "Puffier face",
+        "patterns": [
+          "(face|eyes?).{0,20}(puff|swell|swollen)",
+          "puffy"
+        ]
+      },
+      {
+        "symptom": "neck",
+        "label": "Neck swelling or ache",
+        "patterns": [
+          "neck.{0,20}(swell|swollen|hurt|pain|ache|sore)",
+          "(swell|swollen|pain|ache).{0,10}neck"
+        ]
+      },
+      {
+        "symptom": "chest",
+        "label": "Chest pain",
+        "patterns": [
+          "chest (pain|hurts|tight|pressure)",
+          "pain in my chest"
+        ]
+      },
+      {
+        "symptom": "breath",
+        "label": "Sudden breathlessness",
+        "patterns": [
+          "(can'?t|cannot|hard to|trouble|struggling to) breathe",
+          "short(ness)? of breath",
+          "breathless"
+        ]
+      },
+      {
+        "symptom": "neuro",
+        "label": "Weakness or speech trouble",
+        "patterns": [
+          "weak(ness)? (in|on) (my )?(arm|leg|side)",
+          "numb",
+          "slurr",
+          "can'?t speak",
+          "face (is )?droop"
+        ]
+      },
+      {
+        "symptom": "vision",
+        "label": "Vision change",
+        "patterns": [
+          "blurr",
+          "vision",
+          "can'?t see (well|clearly)",
+          "seeing double"
+        ],
+        "unless": "neuro"
+      },
+      {
+        "symptom": "palp",
+        "label": "Heart racing or skipping",
+        "patterns": [
+          "heart.{0,15}(racing|skipping|pounding|fluttering|irregular)",
+          "palpitation"
+        ]
+      },
+      {
+        "symptom": "exertionFatigue",
+        "label": "Tired on exertion",
+        "patterns": [
+          "(tired|exhausted|wiped out|out of breath).{0,25}(exercise|workout|treadmill|bike|training)",
+          "(exercise|workout|treadmill|bike).{0,25}(harder|tired|exhausting)"
+        ]
+      }
+    ],
+    "state": [
+      {
+        "label": "Short sleep",
+        "patterns": [
+          "(bad|rough|terrible|awful|short) night",
+          "slept (badly|poorly|terribly)",
+          "didn'?t sleep",
+          "couldn'?t sleep",
+          "no sleep",
+          "insomnia"
+        ],
+        "set": {
+          "sleepH": 5.2,
+          "shortNightsMin": 1
+        }
+      },
+      {
+        "label": "Good sleep",
+        "patterns": [
+          "slept (well|great)",
+          "great night",
+          "good night'?s sleep"
+        ],
+        "set": {
+          "sleepH": 7.3
+        }
+      },
+      {
+        "label": "Low mood",
+        "patterns": [
+          "\\b(sad|down|low|depressed|lonely|hopeless|anxious|stressed|overwhelmed)\\b"
+        ],
+        "set": {
+          "mood": "low"
+        }
+      }
+    ]
+  },
+  "maintenance": {
+    "note": "Daily missions are generated from today's signals and the rules that matched. Goals marked demo are placeholders for a clinician or the crew's own plan.",
+    "tasks": [
+      {
+        "id": "T-SYM",
+        "title": "Symptom check",
+        "goal": {
+          "type": "check"
+        },
+        "auto": "checkin",
+        "when": true,
+        "why": "Headache, puffiness or neck swelling are early signs NASA weighs for neck-vein problems. Ten seconds a day.",
+        "sources": [
+          "MTB007"
+        ]
+      },
+      {
+        "id": "T-H2O",
+        "title": "Hydration",
+        "goal": {
+          "type": "count",
+          "target": 6,
+          "unit": "drink bags",
+          "demo": true
+        },
+        "when": {
+          "not": {
+            "any": [
+              {
+                "has": [
+                  "fired",
+                  "VT-3"
+                ]
+              },
+              {
+                "has": [
+                  "fired",
+                  "VT-4"
+                ]
+              }
+            ]
+          }
+        },
+        "why": "Fluid shifts reduce blood volume. Steady drinking supports circulation.",
+        "sources": [
+          "CVRISK"
+        ]
+      },
+      {
+        "id": "T-H2O-PLUS",
+        "title": "Extra hydration",
+        "goal": {
+          "type": "count",
+          "target": 8,
+          "unit": "drink bags",
+          "demo": true
+        },
+        "when": {
+          "any": [
+            {
+              "has": [
+                "fired",
+                "VT-3"
+              ]
+            },
+            {
+              "has": [
+                "fired",
+                "VT-4"
+              ]
+            }
+          ]
+        },
+        "why": "NASA's protocol adds hydration when neck-vein flow is stagnant.",
+        "sources": [
+          "MTB007"
+        ]
+      },
+      {
+        "id": "T-EX",
+        "title": "Exercise block: resistive and aerobic",
+        "goal": {
+          "type": "minutes",
+          "target": 90,
+          "source": "wearable",
+          "demo": true
+        },
+        "when": {
+          "not": {
+            "any": [
+              {
+                "has": [
+                  "fired",
+                  "VT-1"
+                ]
+              },
+              {
+                "has": [
+                  "fired",
+                  "EX-1"
+                ]
+              },
+              {
+                "has": [
+                  "fired",
+                  "RF-1"
+                ]
+              },
+              {
+                "has": [
+                  "fired",
+                  "RF-2"
+                ]
+              }
+            ]
+          }
+        },
+        "why": "Daily exercise protects heart, vessels and muscle against deconditioning.",
+        "sources": [
+          "ISSEX",
+          "TB031"
+        ]
+      },
+      {
+        "id": "T-EX-HI",
+        "title": "Short high-intensity session",
+        "goal": {
+          "type": "minutes",
+          "target": 30,
+          "source": "wearable",
+          "demo": true
+        },
+        "when": {
+          "all": [
+            {
+              "has": [
+                "fired",
+                "EX-1"
+              ]
+            },
+            {
+              "not": {
+                "any": [
+                  {
+                    "has": [
+                      "fired",
+                      "VT-1"
+                    ]
+                  },
+                  {
+                    "has": [
+                      "fired",
+                      "RF-1"
+                    ]
+                  },
+                  {
+                    "has": [
+                      "fired",
+                      "RF-2"
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "why": "Shorter, harder sessions maintained fitness in NASA's SPRINT study. It still counts.",
+        "sources": [
+          "SPRINT"
+        ]
+      },
+      {
+        "id": "T-EX-AERO",
+        "title": "Aerobic only: bike or treadmill, no resistive machine",
+        "goal": {
+          "type": "minutes",
+          "target": 45,
+          "source": "wearable",
+          "demo": true
+        },
+        "when": {
+          "all": [
+            {
+              "has": [
+                "fired",
+                "VT-1"
+              ]
+            },
+            {
+              "not": {
+                "any": [
+                  {
+                    "has": [
+                      "fired",
+                      "RF-1"
+                    ]
+                  },
+                  {
+                    "has": [
+                      "fired",
+                      "RF-2"
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "why": "With a clot, NASA restricts resistive exercise for at least 30 days. Bike and treadmill can be considered without harness shoulder straps.",
+        "sources": [
+          "MTB007"
+        ]
+      },
+      {
+        "id": "T-SCAN",
+        "title": "Neck scan with your medical officer",
+        "goal": {
+          "type": "check"
+        },
+        "when": {
+          "all": [
+            {
+              "neq": [
+                "scan.day",
+                {
+                  "path": "day"
+                }
+              ]
+            },
+            {
+              "any": [
+                {
+                  "has": [
+                    "fired",
+                    "VT-2"
+                  ]
+                },
+                {
+                  "has": [
+                    "fired",
+                    "VT-4"
+                  ]
+                },
+                {
+                  "has": [
+                    "fired",
+                    "VT-3"
+                  ]
+                },
+                {
+                  "eq": [
+                    "day",
+                    30
+                  ]
+                },
+                {
+                  "eq": [
+                    "day",
+                    60
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "why": "Scans on flight days 30 and 60, more often with stagnant flow, and whenever symptoms suggest one.",
+        "sources": [
+          "STD100",
+          "MTB007"
+        ]
+      },
+      {
+        "id": "T-TREAT",
+        "title": "Treatment check-in with your medical officer",
+        "goal": {
+          "type": "check"
+        },
+        "when": {
+          "has": [
+            "fired",
+            "VT-1"
+          ]
+        },
+        "why": "Daily contact while the clot protocol runs.",
+        "sources": [
+          "MTB007"
+        ]
+      },
+      {
+        "id": "T-VIS",
+        "title": "Vision self-test",
+        "goal": {
+          "type": "check"
+        },
+        "when": {
+          "any": [
+            {
+              "every": [
+                "day",
+                7
+              ]
+            },
+            {
+              "has": [
+                "symptoms",
+                "vision"
+              ]
+            }
+          ]
+        },
+        "why": "A weekly one-minute check catches gradual eye changes (SANS) between exams.",
+        "sources": [
+          "MTB001"
+        ]
+      },
+      {
+        "id": "T-BLOOD",
+        "title": "Blood draw",
+        "goal": {
+          "type": "check"
+        },
+        "when": {
+          "any": [
+            {
+              "eq": [
+                "day",
+                180
+              ]
+            },
+            {
+              "has": [
+                "fired",
+                "AN-1"
+              ]
+            },
+            {
+              "has": [
+                "fired",
+                "LAB-1"
+              ]
+            }
+          ]
+        },
+        "why": "Scheduled in-flight blood tests check for anemia and other changes against your pre-flight baseline.",
+        "sources": [
+          "STD100",
+          "TR2022"
+        ]
+      },
+      {
+        "id": "T-LAND",
+        "title": "Landing checklist: fluid plan, garment fit, stand test",
+        "goal": {
+          "type": "check"
+        },
+        "when": {
+          "lte": [
+            "landingIn",
+            7
+          ]
+        },
+        "why": "Prepares your body for gravity. On Mars there is no recovery team.",
+        "sources": [
+          "CVRISK"
+        ]
+      },
+      {
+        "id": "T-GOOD",
+        "title": "Bank one good moment",
+        "goal": {
+          "type": "check"
+        },
+        "when": {
+          "has": [
+            "fired",
+            "WB-0"
+          ]
+        },
+        "why": "Positive moments help on harder days, and small studies link positive emotion to healthier artery function.",
+        "sources": [
+          "MIL2005"
+        ]
+      }
+    ]
+  },
+  "schedule": [
+    {
+      "id": "S-LAUNCH",
+      "label": "Launch",
+      "day": 0,
+      "sources": []
+    },
+    {
+      "id": "S-FD30",
+      "label": "Neck scan",
+      "day": 30,
+      "sources": [
+        "STD100"
+      ]
+    },
+    {
+      "id": "S-FD60",
+      "label": "Neck scan",
+      "day": 60,
+      "sources": [
+        "STD100"
+      ]
+    },
+    {
+      "id": "S-FD180",
+      "label": "Blood draw",
+      "day": 180,
+      "sources": [
+        "STD100"
+      ]
+    },
+    {
+      "id": "S-LANDWEEK",
+      "label": "Landing week",
+      "beforeLanding": 7,
+      "sources": [
+        "CVRISK"
+      ]
+    },
+    {
+      "id": "S-LAND",
+      "label": "Landing",
+      "beforeLanding": 0,
+      "sources": []
+    }
+  ]
+}

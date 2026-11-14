@@ -1,0 +1,292 @@
+[
+  {
+    "name": "Normal day",
+    "signals": {
+      "day": 32,
+      "sleepH": 7.3,
+      "mood": "good",
+      "symptoms": [],
+      "scan": {
+        "day": 30,
+        "result": "reduced"
+      },
+      "evaIn": 12,
+      "landingIn": 200,
+      "exerciseMin7d": 125
+    },
+    "expect": {
+      "severity": 0,
+      "rules": [
+        "WB-0"
+      ],
+      "tasks": [
+        "T-SYM",
+        "T-H2O",
+        "T-EX",
+        "T-GOOD"
+      ]
+    }
+  },
+  {
+    "name": "Needs a closer look",
+    "signals": {
+      "day": 47,
+      "sleepH": 5.2,
+      "shortNights": 3,
+      "mood": "meh",
+      "lowDays": 1,
+      "symptoms": [
+        "headache",
+        "puffy"
+      ],
+      "scan": {
+        "day": 30,
+        "result": "reduced"
+      },
+      "evaIn": 11,
+      "landingIn": 180,
+      "exerciseMin7d": 95
+    },
+    "expect": {
+      "severity": 2,
+      "rules": [
+        "VT-2",
+        "BH-1"
+      ],
+      "tasks": [
+        "T-SYM",
+        "T-H2O",
+        "T-EX",
+        "T-SCAN"
+      ]
+    }
+  },
+  {
+    "name": "Red alert: suspected clot",
+    "signals": {
+      "day": 54,
+      "sleepH": 6.6,
+      "mood": "meh",
+      "symptoms": [
+        "neck"
+      ],
+      "scan": {
+        "day": 54,
+        "result": "thrombus"
+      },
+      "evaIn": 4,
+      "landingIn": 170,
+      "exerciseMin7d": 110
+    },
+    "expect": {
+      "severity": 3,
+      "rules": [
+        "VT-1"
+      ],
+      "tasks": [
+        "T-SYM",
+        "T-H2O",
+        "T-EX-AERO",
+        "T-TREAT"
+      ]
+    }
+  },
+  {
+    "name": "Chest pain overrides everything",
+    "signals": {
+      "day": 47,
+      "sleepH": 7.0,
+      "mood": "good",
+      "symptoms": [
+        "chest"
+      ],
+      "scan": {
+        "day": 30,
+        "result": "reduced"
+      }
+    },
+    "expect": {
+      "severity": 3,
+      "rules": [
+        "RF-1"
+      ],
+      "tasks": [
+        "T-SYM",
+        "T-H2O"
+      ]
+    }
+  },
+  {
+    "name": "Stagnant flow, no risk factors",
+    "signals": {
+      "day": 48,
+      "sleepH": 7.0,
+      "mood": "good",
+      "symptoms": [],
+      "scan": {
+        "day": 48,
+        "result": "stagnant"
+      }
+    },
+    "expect": {
+      "severity": 2,
+      "rules": [
+        "VT-4"
+      ],
+      "tasks": [
+        "T-SYM",
+        "T-H2O-PLUS",
+        "T-EX"
+      ]
+    }
+  },
+  {
+    "name": "Stagnant flow with a hormone risk factor",
+    "signals": {
+      "day": 48,
+      "sleepH": 7.0,
+      "mood": "good",
+      "symptoms": [],
+      "scan": {
+        "day": 48,
+        "result": "stagnant"
+      },
+      "risk": {
+        "hormone": true
+      }
+    },
+    "expect": {
+      "severity": 2,
+      "rules": [
+        "VT-3"
+      ]
+    }
+  },
+  {
+    "name": "On treatment, short on stock, landing tomorrow",
+    "signals": {
+      "day": 178,
+      "sleepH": 7.0,
+      "mood": "good",
+      "symptoms": [],
+      "scan": {
+        "day": 170,
+        "result": "antegrade"
+      },
+      "anticoag": "treatment",
+      "anticoagCoverageDays": 10,
+      "anticoagCourseDays": 20,
+      "landingIn": 1
+    },
+    "expect": {
+      "severity": 2,
+      "rules": [
+        "MED-1",
+        "LD-2",
+        "LD-1"
+      ]
+    }
+  },
+  {
+    "name": "Long mission, tired on exercise, light training",
+    "signals": {
+      "day": 120,
+      "sleepH": 7.0,
+      "mood": "good",
+      "symptoms": [
+        "exertionFatigue"
+      ],
+      "scan": {
+        "day": 60,
+        "result": "reduced"
+      },
+      "exerciseMin7d": 40
+    },
+    "expect": {
+      "severity": 1,
+      "rules": [
+        "EX-1",
+        "AN-1"
+      ],
+      "tasks": [
+        "T-SYM",
+        "T-H2O",
+        "T-EX-HI",
+        "T-BLOOD"
+      ]
+    }
+  },
+  {
+    "name": "Heart rate up for days plus palpitations",
+    "signals": {
+      "day": 70,
+      "sleepH": 7.0,
+      "mood": "good",
+      "symptoms": [
+        "palp"
+      ],
+      "scan": {
+        "day": 60,
+        "result": "reduced"
+      },
+      "hrHighDays": 3
+    },
+    "expect": {
+      "severity": 2,
+      "rules": [
+        "CV-1",
+        "CV-2"
+      ]
+    }
+  },
+  {
+    "name": "Spacewalk in 2 days after short nights",
+    "signals": {
+      "day": 80,
+      "sleepH": 5.5,
+      "shortNights": 2,
+      "mood": "meh",
+      "symptoms": [],
+      "scan": {
+        "day": 60,
+        "result": "reduced"
+      },
+      "evaIn": 2
+    },
+    "expect": {
+      "severity": 2,
+      "rules": [
+        "OP-1",
+        "WB-1"
+      ]
+    }
+  },
+  {
+    "name": "Lab marker out of personal range",
+    "signals": {
+      "day": 180,
+      "sleepH": 7.0,
+      "mood": "good",
+      "symptoms": [],
+      "scan": {
+        "day": 170,
+        "result": "reduced"
+      },
+      "labsOutOfRange": [
+        "CRP"
+      ]
+    },
+    "expect": {
+      "severity": 2,
+      "rules": [
+        "LAB-1"
+      ],
+      "tasks": [
+        "T-SYM",
+        "T-H2O",
+        "T-EX",
+        "T-BLOOD"
+      ]
+    }
+  }
+]
