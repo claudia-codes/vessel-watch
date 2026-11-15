@@ -3058,9 +3058,7 @@ import { VITAL_LEVELS, VITAL_LABEL, vitalStatus, trend, freshness, ALERT_LEVELS,
   /* ---------- other prototypes (HTML pages in /prototypes) ----------
      To add one: drop the file in prototypes/ and add a line here. */
   const PROTOTYPES = [
-    { id:"lumiwatch", label:"Lumi watch", file:"prototypes/watch-lumi.html", caption:"<b>Lumi watch</b> VesselWatch on the wrist: same engine stream, playbook and Lumi, one thing per screen (open <a href='prototypes/watch-lumi.html' style='color:inherit'>full page</a>)" },
-    { id:"watch", label:"Smartwatch", file:"prototypes/watch.html", caption:"<b>Smartwatch companion</b> wrist view with its own Normal, Stress and Alert states" },
-    { id:"calm", label:"Calm version", file:"calm.html", caption:"<b>Calm version</b> the same engine and playbook in the Inner Ground Control visual system (open <a href='calm.html' style='color:inherit'>full page</a>)" }
+    { id:"lumiwatch", label:"Lumi watch", file:"prototypes/watch-lumi.html", caption:"<b>Lumi watch</b> VesselWatch on the wrist: same engine stream, playbook and Lumi, one thing per screen (open <a href='prototypes/watch-lumi.html' style='color:inherit'>full page</a>)" }
   ];
   $("protoBtns").innerHTML = PROTOTYPES.map(p=>`<button class="scn proto" data-proto="${p.id}" aria-pressed="false"><i></i>${p.label}</button>`).join("");
   function showPrototype(id){

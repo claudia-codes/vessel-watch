@@ -35,7 +35,6 @@ A NASA Space Apps 2026 hackathon prototype. VesselWatch is an astronaut health c
 |---|---|
 | `index.html` | The whole app (HTML, CSS, JS module) |
 | `ui/model.js`, `ui/model.test.mjs` | V2 console logic: vital status, alert hierarchy, task states, connectivity, freshness (pure, tested) |
-| `calm.html` | Calm version: same engine, playbook and Lumi in the Inner Ground Control visual system (one status word, mind/heart rings, data folded, one step per sheet). Also listed under Other prototypes |
 | `engine/hemomind-core.js` | **Generated** HemoMind engine bundle (`window.HemoMindCore`): telemetry stream + OCHMO-MTB-007 decision. Single source of truth for physiological data. See `engine/README.md` |
 | `agent/playbook.json` | All clinical knowledge: rules, daily missions, NASA schedule, evidence sources, datasets, speech lexicon. v0.4.0 |
 | `agent/agent.js` | Engine (ES module): `createAgent`, `loadPlaybook`, `assess`, `parse`, `planDay` |
@@ -46,7 +45,7 @@ A NASA Space Apps 2026 hackathon prototype. VesselWatch is an astronaut health c
 | `agent/test.mjs`, `agent/test_agent.py` | Test runners; both must print "All passed" |
 | `agent/README.md` | Agent docs: signals, rule format, evidence levels, reuse |
 | `prototypes/watch-lumi.html` | **Lumi watch**: VesselWatch on a round smartwatch. Same engine stream (`../engine/hemomind-core.js`), playbook (`../agent/`) and Lumi. Five swipeable screens: face (Lumi + status word + live HR), 3-tap check-in → playbook verdict and who is told, vitals with citations, neck vein (OCHMO flow + EVA/ARED), Earth delay and Houston queue. No doses on the watch. Its own Nominal / Stasis / Clot demo strip. First entry in "Other prototypes"; the prototype view has a "← Back to the app" button |
-| `prototypes/` | Other team prototypes shown from Demo controls → "Other prototypes" (e.g. `watch.html`, the smartwatch companion). To add one: put the file here and add a line to `PROTOTYPES` in `index.html` |
+| `prototypes/` | Other team prototypes shown from Demo controls → "Other prototypes" (currently only the Lumi watch; the old smartwatch companion and the calm version were removed on Nov 15 2026 and stay in git history). To add one: put the file here and add a line to `PROTOTYPES` in `index.html` |
 
 Run locally: `python3 -m http.server 8000` (the app fetches the playbook, so `file://` won't work). Test: `node agent/test.mjs && python3 agent/test_agent.py`.
 
