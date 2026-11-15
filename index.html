@@ -2810,7 +2810,7 @@ import { VITAL_LEVELS, VITAL_LABEL, vitalStatus, trend, freshness, ALERT_LEVELS,
         <summary><span class="n" aria-hidden="true">${i+1}</span><span class="step-txt">${i===0&&urgent?`<em>Do first</em>`:""}<b>${a.text}</b><small>${a.whoLabel}</small></span><span class="chev" aria-hidden="true">›</span></summary>${body(a)}</details>`;
     return `<section class="next-card" data-st="${st}" aria-labelledby="ncT">
         <div class="nc-head"><span class="nc-pill">${STATE_LABEL[st]}</span><span class="nc-who">${who.length ? "Told: "+who.join(" · ") : "Nobody else is told"}</span></div>
-        <h3 class="nc-title" id="ncT">${R.meaning}</h3>
+        <h3 class="nc-title" id="ncT">${symptomsLogged(R.severity, R.rules, nowReported()) ? LOGGED_TITLE : R.meaning}</h3>
         ${st==="emer" ? emerTiles(R) + (steps.length ? `<details class="nc-full"><summary>Full steps and why</summary><div class="nc-steps2 ${who.length<=1?"one-who":""}">${steps.map(step).join("")}</div></details>` : "")
           : steps.length ? `<div class="nc-steps2 ${who.length<=1?"one-who":""}">${steps.map(step).join("")}</div>` : ""}
         ${st==="emer" ? `<div class="nc-actions">
@@ -4015,10 +4015,11 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null,"te
     const ov = overallStatus(ALERTS, !!lastR), hero = $("dashLumi");
     hero.dataset.level = ov.level;
     $("dlState").textContent = ov.text;
+    const logged = lastR && symptomsLogged(lastR.severity, lastR.rules, nowReported());
     $("dlWhy").textContent = !lastR ? "Answer 3 quick questions. Lumi checks them with your sensors and tells you how you are."
-      : ov.level==="critical" ? "Act now. Your medical officer and Earth are told." : lastR.meaning;
+      : ov.level==="critical" ? "Act now. Your medical officer and Earth are told." : logged ? LOGGED_TITLE : lastR.meaning;
     const lastL = [...HIST].reverse().find(h=>!/^You/.test(h.from));
-    const say = lastR ? firstSent(lastR.message) : lastL ? lastL.text : `Hi ${CREW.firstName}. I’m here when you need me.`;
+    const say = logged ? loggedLine(nowReported()) : lastR ? firstSent(lastR.message) : lastL ? lastL.text : `Hi ${CREW.firstName}. I’m here when you need me.`;
     $("dlMsg").textContent = `Lumi: “${say}”`;
     $("dlSt").textContent = "Lumi · " + ($("lumiStatus").querySelector("b")?.textContent || "");
     const hr = vitalMetrics.heartRateBpm?.display; if (hr) $("dlHeart").style.setProperty("--beat", (60/Math.max(40, +hr || 60)).toFixed(2)+"s");
@@ -4211,6 +4212,11 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null,"te
         return `<li data-s="${state}"><span class="sw-ic" aria-hidden="true"></span><span class="sw-n"><b>${s.name}</b><small>${r ? esc2(r.note) : state==="reading" ? "Reading…" : esc2(s.src)}</small></span>
           <span class="sw-v">${r?.value ? `<b class="mono">${esc2(r.value)}</b>` : ""}${r?.lv ? `<span class="vd-st" data-st="${ST_ATTR[r.lv]}">${VITAL_LABEL[r.lv]}</span>` : r?.state==="na" ? `<span class="vd-st na">Unavailable</span>` : ""}</span></li>`; }).join("")}</ul>`;
   }
+  /* Symptoms reported but only the WB-0 baseline fired: never show "at baseline / everything looks like your usual". */
+  function symptomsLogged(severity, rules, reported){ return severity===0 && rules.every(r=>r.id==="WB-0") && reported.length>0; }
+  var LOGGED_TITLE = "Symptoms logged. Nothing needs action now.";
+  function loggedLine(list){ return `I logged your ${list.map(x=>String(x).toLowerCase()).join(", ")} for your medical officer. Tell Lumi straight away if it gets worse or anything new starts.`; }
+  function nowReported(){ return S ? [...S.sym].filter(x=>x!=="none").map(x=>SYM_LABEL[x]||x).concat([...(S.extra||[])].map(x=>EXTRA_LABEL[x]||x)) : []; }
   function recordCheckin(R, opts={}){
     analyzing = false;
     CHECKINS.push({ at:Date.now(), source: opts.after==="body" ? "Voice body scan" : opts.opener ? "Demo scenario" : "Check-in",
@@ -4228,15 +4234,16 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null,"te
     if (!c){ box.innerHTML = `<p class="t-empty">No results yet.</p>`; return; }
     const st = clinicalState(c.severity, c.ochmo), crew = c.actions.filter(a=>a.who==="crew"), told = c.actions.filter(a=>a.who!=="crew");
     const MOOD = { good:"Good", meh:"So-so", low:"Low" };
+    const reported = [...c.sym, ...c.extra], logged = symptomsLogged(c.severity, c.rules, reported);
     box.innerHTML = `<div class="next-card res-head" data-st="${st}"><div class="nc-head"><span class="nc-pill">${STATE_LABEL[st]}</span><span class="nc-who">${fmtHM(c.at)} · ${esc2(c.source)}</span></div>
-        <h3 class="nc-title">${c.meaning}</h3><p class="res-msg">${esc2(firstSent(c.message))}</p></div>
+        <h3 class="nc-title">${logged ? LOGGED_TITLE : c.meaning}</h3><p class="res-msg">${esc2(logged ? loggedLine(reported) : firstSent(c.message))}</p></div>
       <div class="res-grid"><div class="res-col">
         <section class="dcard"><h3>What you reported</h3><dl class="rd">
           <dt>Sleep</dt><dd>${c.sleepH.toFixed(1)} h (ISS crews ${BASE_SLEEP} h)</dd><dt>Mood</dt><dd>${c.mood ? MOOD[c.mood] : "Not asked"}</dd>
           <dt>Symptoms</dt><dd>${c.sym.length ? esc2(c.sym.join(", ")) : "None reported"}</dd>
           ${c.extra.length ? `<dt>Also reported</dt><dd>${esc2(c.extra.join(", "))} <small>(logged for your medical officer; the playbook has no rule for it yet)</small></dd>` : ""}
           ${c.note ? `<dt>Your words</dt><dd>“${esc2(c.note)}”</dd>` : ""}</dl></section>
-        <section class="dcard"><h3>Detected anomalies</h3>${c.rules.length && c.severity>0 ? `<ul class="find">${c.rules.map(r=>`<li><b>${esc2(r.title)}</b><small>${EV_LABEL[r.ev]||r.ev} · rule ${r.id}</small></li>`).join("")}</ul>` : `<p class="ok-line"><i class="lv" data-level="normal" aria-hidden="true"></i>None. Every playbook rule is clear.</p>`}</section></div>
+        <section class="dcard"><h3>Detected anomalies</h3>${c.rules.length && c.severity>0 ? `<ul class="find">${c.rules.map(r=>`<li><b>${esc2(r.title)}</b><small>${EV_LABEL[r.ev]||r.ev} · rule ${r.id}</small></li>`).join("")}</ul>` : (logged ? `<p class="ok-line"><i class="lv" data-level="advisory" aria-hidden="true"></i>No playbook rule needs action. Your symptoms are logged for your medical officer.</p>` : `<p class="ok-line"><i class="lv" data-level="normal" aria-hidden="true"></i>None. Every playbook rule is clear.</p>`)}</section></div>
         <section class="dcard"><h3>Sensor measurements</h3><table class="vd-tab"><thead><tr><th scope="col">Measurement</th><th scope="col">Value</th><th scope="col">Compared with</th><th scope="col">Status</th></tr></thead><tbody>
           ${c.vitals.map(v=>`<tr><td>${v.name}</td><td class="mono">${esc2(v.value)} ${esc2(v.unit)}</td><td>${esc2(v.ref)}</td><td><span class="vd-st" data-st="${ST_ATTR[v.lv]}">${VITAL_LABEL[v.lv]}</span></td></tr>`).join("")}
           <tr><td>Neck vein flow</td><td>${esc2(c.flow)}</td><td>NASA OCHMO-MTB-007</td><td>${c.ochmo}</td></tr>
