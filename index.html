@@ -11,7 +11,7 @@
 :root{
   color-scheme: dark;
   --bg:#08121c; --panel:#0e1d2b; --panel2:#132638; --line:#23415a;
-  --text:#d8e7ef; --muted:#87a1b1; --cyan:#62d6ea; --amber:#f0a63a; --crimson:#ff5a72; --ok:#5fcf8e;
+  --text:#d8e7ef; --muted:#9bb2c1;   /* muted raised from #87a1b1 (6.3:1) to 8.6:1 for AAA */ --cyan:#62d6ea; --amber:#f0a63a; --crimson:#ff5a72; --ok:#5fcf8e;
   --holo1:#bff6ff; --holo2:#62d6ea; --holo3:#2a7fd4;
   --display:"Chakra Petch","Segoe UI",system-ui,sans-serif;
   --body:"Barlow","Segoe UI",system-ui,sans-serif;
@@ -19,6 +19,25 @@
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
 }
+/* ---------- Clinical semantic tokens (block 1 of the clinical redesign) ----------
+   Four states, ordered by severity. Contrast measured on --bg #08121c:
+   text/borders are all AAA (≥7:1); --emer-solid carries #08121c text at 6.3:1 (AA, large/bold use only).
+   Only EMERGENCY may use a solid fill; NORMAL uses text and a dot, never a fill. */
+:root{
+  --text-2:#9bb2c1;                                   /* secondary text, 8.6:1 */
+  --s-emer:#ff8a9a;  --s-emer-solid:#ff5a72; --s-emer-bg:#3a1220;   /* 8.4:1 · fill · tint (text on it 13.9:1) */
+  --s-alert:#f5b65a; --s-alert-bg:#33240e;                         /* 10.5:1 · tint (alert on it 8.4:1) */
+  --s-prev:#7fc8f8;  --s-prev-bg:#0f2a3d;                          /* 10.3:1 · tint (prev on it 8.1:1) */
+  --s-ok:#7dd3a3;    --s-ok-bg:#10291f;                            /* 10.5:1 · reserved, normal has no fill */
+  --num-font:600 1.9rem/1 var(--display);                      /* monitoring numbers: always tabular-nums */
+}
+/* tokens are prefixed --s- so the existing --ok/--amber/--crimson stay untouched until block 2+ */
+/* current clinical state as tokens: components read --state / --state-bg instead of picking colours */
+body[data-state="emer"]{--state:var(--s-emer);--state-bg:var(--s-emer-bg)}
+body[data-state="alert"]{--state:var(--s-alert);--state-bg:var(--s-alert-bg)}
+body[data-state="prev"]{--state:var(--s-prev);--state-bg:var(--s-prev-bg)}
+body[data-state="ok"]{--state:var(--s-ok);--state-bg:transparent}
+.num{font:var(--num-font);font-variant-numeric:tabular-nums}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ color-scheme: dark; } }
 :root[data-theme="dark"]{ color-scheme: dark; }
 *,*::before,*::after{box-sizing:inherit}
@@ -56,7 +75,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .demo-id span{font-size:.78rem;color:var(--muted)}
 .scn{background:var(--bg);border:1px solid color-mix(in srgb,var(--amber) 55%,transparent);color:var(--text);padding:.45rem .9rem;font-family:var(--display);font-weight:600;display:flex;align-items:center;gap:.5rem;border-radius:999px}
 .scn i{width:9px;height:9px;border-radius:50%}
-.scn[data-s="normal"] i{background:var(--ok)}.scn[data-s="investigate"] i{background:var(--amber)}.scn[data-s="red"] i{background:var(--crimson)}.scn[data-s="free"] i{background:var(--cyan)}
+.scn[data-s="NOMINAL"] i{background:var(--ok)}.scn[data-s="PRETHROMBOTIC"] i{background:var(--amber)}.scn[data-s="EMERGENCY_THROMBOSIS"] i{background:var(--crimson)}.scn[data-s="free"] i{background:var(--cyan)}
 .scn[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:var(--bg)}
 .scn[aria-pressed="true"] i{box-shadow:0 0 0 2px var(--bg)}
 .scn:hover{border-color:var(--amber)}
@@ -317,6 +336,356 @@ details.playbook summary{cursor:pointer;font-family:var(--display);color:var(--c
 .lchip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--cyan);animation:glow 1.2s infinite}
 body.listening .lchip{display:inline-flex}
 body.listening .holo::after{content:"";position:absolute;width:210px;height:210px;top:-9px;border-radius:50%;border:1px solid color-mix(in srgb,var(--cyan) 40%,transparent);animation:ear 2.4s ease-out infinite}
+/* ---------- HemoMind engine integration ---------- */
+/* floating demo dock (outside the app) */
+.dock{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:80;display:flex;flex-direction:column;gap:.45rem;padding:.7rem .8rem;width:300px;max-width:calc(100vw - 32px);
+  border:1px dashed var(--amber);background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--amber) 9%,transparent) 0 6px,transparent 6px 14px),color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(8px);box-shadow:0 10px 40px #0008}
+.dock .dk-h{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem}
+.dock .dk-h b{font-family:var(--display);color:var(--amber);font-size:.9rem}
+.dock .dk-h button{background:none;border:0;color:var(--muted);font-size:.8rem;padding:0;text-decoration:underline}
+.dock .scn{width:100%;justify-content:flex-start;text-align:left;font-size:.85rem;padding:.4rem .7rem}
+.dock .scn small{display:block;font-family:var(--body);font-weight:400;font-size:.72rem;opacity:.8}
+.dock .dk-live{font-size:.72rem;color:var(--muted);display:flex;justify-content:space-between;gap:.5rem;font-variant-numeric:tabular-nums}
+.dock .dk-live .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin-right:.3rem;animation:blink 1s steps(2) infinite}
+.dock.min .dk-body{display:none!important}
+@keyframes blink{50%{opacity:.25}}
+@media (max-width:600px){.dock{left:16px;right:16px;width:auto;flex-direction:row;flex-wrap:wrap;gap:.35rem;padding:.5rem .6rem}.dock .dk-h,.dock .dk-live{flex-basis:100%}
+  .dock .scn{width:calc(50% - .2rem);padding:.3rem .5rem;font-size:.76rem}.dock .scn small{display:none}}
+/* live strip in the crew console */
+.live{display:flex;flex-wrap:wrap;gap:.3rem .9rem;padding:.4rem 1rem;border-bottom:1px solid var(--line);font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.live b{color:var(--text);font-weight:600}
+.badge2{display:inline-flex;align-items:center;gap:.3rem;font-family:var(--display);font-weight:600;font-size:.72rem;padding:.05rem .45rem;border:1px solid var(--ok);color:var(--ok)}
+.badge2.no{border-color:var(--crimson);color:var(--bg);background:var(--crimson)}
+/* telemetry tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.4rem}
+.tile{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);padding:.45rem .6rem;min-width:0}
+.tile[data-flag="watch"]{border-left-color:var(--amber)}.tile[data-flag="alert"]{border-left-color:var(--crimson)}.tile[data-flag="ok"]{border-left-color:var(--ok)}
+.tile .tl{font-size:.72rem;color:var(--muted)}
+.tile .tv{font-family:var(--display);font-weight:600;font-size:1.15rem;line-height:1.2;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.tile .tv small{font-size:.72rem;color:var(--muted);font-weight:500;margin-left:.2rem}
+.tile .tr{font-size:.68rem;color:var(--muted);margin-top:.15rem}
+.tile .tr a{color:var(--cyan)}
+.tile[data-g="vascular"] .tv{font-size:.95rem}
+/* OCHMO decision */
+.ochmo{border:1px solid var(--line);background:var(--panel2);padding:.8rem .9rem;transition:border-color .4s,background .4s}
+.ochmo[data-st="GREEN"]{border-color:var(--ok)}
+.ochmo[data-st="YELLOW"]{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 7%,var(--panel2))}
+.ochmo[data-st="RED"]{border-color:var(--crimson);background:color-mix(in srgb,var(--crimson) 10%,var(--panel2))}
+.ochmo .oh{display:flex;align-items:center;flex-wrap:wrap;gap:.3rem .7rem}
+.ochmo .light{width:14px;height:14px;border-radius:50%;flex:none;background:var(--ok);box-shadow:0 0 12px var(--ok)}
+.ochmo[data-st="YELLOW"] .light{background:var(--amber);box-shadow:0 0 12px var(--amber)}
+.ochmo[data-st="RED"] .light{background:var(--crimson);box-shadow:0 0 12px var(--crimson);animation:blink 1s steps(2) infinite}
+.ochmo .ow{font-family:var(--display);font-weight:700;font-size:1.05rem}
+.ochmo[data-st="GREEN"] .ow{color:var(--ok)}.ochmo[data-st="YELLOW"] .ow{color:var(--amber)}.ochmo[data-st="RED"] .ow{color:var(--crimson)}
+.ochmo h4{margin:.5rem 0 .2rem;font-family:var(--display);font-weight:600;font-size:1rem}
+.ochmo p{margin:.2rem 0;font-size:.88rem}
+.ochmo .muted{color:var(--muted);font-size:.8rem}
+.ochmo .rules2{display:flex;flex-wrap:wrap;gap:.4rem;margin:.55rem 0}
+.rx{margin-top:.6rem;padding:.55rem .7rem;border-left:3px solid var(--ok);background:color-mix(in srgb,var(--bg) 40%,transparent)}
+.rx.give{border-left-color:var(--crimson)}
+.rx b{font-family:var(--display);font-weight:600}
+.rx ol{margin:.3rem 0 0;padding-left:1.2rem;font-size:.88rem}
+.care{list-style:none;margin:.6rem 0 0;padding:0;display:grid;gap:.3rem}
+.care li{font-size:.86rem;padding:.35rem .55rem;background:color-mix(in srgb,var(--bg) 40%,transparent);border-left:3px solid var(--cyan)}
+.care li.nonochmo{border-left-style:dashed;border-left-color:var(--muted)}
+.care li span{display:block;font-size:.72rem;color:var(--muted)}
+.ochmo details{margin-top:.5rem;font-size:.8rem;color:var(--muted)}
+.ochmo blockquote{margin:.35rem 0;padding-left:.6rem;border-left:2px solid var(--line);font-style:italic}
+.queue{list-style:none;margin:.4rem 0 0;padding:0;display:grid;gap:.3rem}
+.queue li{font-size:.8rem;padding:.4rem .55rem;background:var(--panel2);border-left:3px solid var(--crimson);font-variant-numeric:tabular-nums}
+.queue li[data-s="DELIVERED"]{border-left-color:var(--ok)}
+.queue li code{font-size:.72rem;color:var(--muted)}
+.queue .empty{border-left-color:var(--line);color:var(--muted)}
+.stage{padding-bottom:16rem}
+
+/* ---------- Declutter (Nov 2026): one focus, Lumi first, the rest on demand ---------- */
+.grid{display:none}
+.stage{grid-template-columns:minmax(0,460px)!important;padding:1.25rem 16px 8rem}
+.stage > .col > .layer{display:none}
+/* ---------- One screen, no scrolling (desktop) ----------
+   The console fills the window under the header. Left: Lumi and the current conversation step.
+   Right: "Today" (what happens next and who is told, plus today's missions). Nothing scrolls on its own. */
+.device{display:grid!important;height:auto!important;min-height:0;
+  grid-template-columns:minmax(0,1fr);
+  grid-template-areas:"head" "alert" "tl" "tabs" "main" "partial" "voice" "side"}
+.dev-head{grid-area:head}.alertbar{grid-area:alert}.timeline{grid-area:tl}
+.tabs{grid-area:tabs;border-top:0;border-bottom:1px solid var(--line)}
+.tabs button{flex-direction:row;justify-content:center;gap:.45rem;padding:.6rem .3rem}
+.tabs button[aria-current="true"]{box-shadow:inset 0 -2px 0 var(--cyan)}
+.screen{grid-area:main;overflow:visible;min-height:0}
+.partial{grid-area:partial}.voicebar{grid-area:voice}
+.todaycol{grid-area:side;padding:.75rem 1rem 1rem;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:.7rem;min-width:0}
+.holo{position:relative;top:auto;height:180px;background:none}
+.holo .ring,.holo .ticks{top:0}
+#flow > *{scroll-margin:calc(var(--topH,52px) + 16px) 0 24px}
+.t-h{margin:0 0 .35rem;font-family:var(--display);font-weight:600;font-size:.9rem;color:var(--muted)}
+.t-empty{margin:0;font-size:.88rem;color:var(--muted)}
+.todaycol .card{margin-top:.3rem;padding:.4rem .7rem}
+.todaycol .card h3{font-size:.88rem;font-weight:500;font-family:var(--body);line-height:1.3}
+.todaycol .card .who{font-size:.7rem}
+.todaycol .missions{margin-top:0}
+.todaycol .mission{padding:.4rem .7rem;row-gap:0}
+.todaycol .mission h4{font-size:.9rem}
+.todaycol .mission .mbar{display:none}          /* progress is already in the sub line ("2 of 6 drink bags") */
+/* one row per mission: ring · title · Why › · button */
+.todaycol .mission{grid-template-columns:28px 1fr auto auto}
+.todaycol .mission details{font-size:.76rem;grid-column:3;grid-row:1;align-self:center;line-height:1.2}
+.todaycol .mission .mbtn{grid-column:4;grid-row:1}
+.todaycol .mission details[open]{grid-column:2/5;grid-row:2;justify-self:stretch}
+.todaycol .mission .sub{line-height:1.3}
+.todaycol{gap:.5rem}
+/* ---------- Block 4 · less noise ---------- */
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.spk .ic{width:16px;height:16px}
+.mic,.listen{color:var(--text)}
+.float-xp{display:none}                       /* no flying "+5 glow" counters */
+.tabs button span{display:none}
+.chips.row .chip{flex-direction:row;justify-content:center;gap:.5rem;padding:.7rem .4rem;font-family:var(--body)}
+.chip{font-family:var(--body)}
+.chip kbd{font-family:var(--body)}
+/* ---------- Block 5 · Lumi column: one turn at a time ---------- */
+#flow .tx.you,#flow .tx.sys{padding:.35rem .7rem;margin-top:.4rem;animation:none}
+#flow .tx.you .msg,#flow .tx.sys .msg{font-family:var(--body);font-weight:400;font-size:.9rem;min-height:0}
+#flow .tx.you .from,#flow .tx.sys .from{font-size:.7rem}
+#flow .tx.sys{background:none;border-left-color:var(--line)}
+#flow .tx.sys .from{color:var(--text-2)} #flow .tx.sys .from::before{background:var(--text-2)}
+#flow .tx .from{font-family:var(--body);font-weight:600}
+#flow .tx .msg{font-family:var(--body);font-weight:500}
+/* Block 6: speaker labels on tinted Lumi bubbles use the AAA state tokens */
+.tx.red .from{color:var(--s-emer)} .tx.red .from::before{background:var(--s-emer)}
+.tx.amber .from{color:var(--s-alert)} .tx.amber .from::before{background:var(--s-alert)}
+/* ---------- "What happens next" card: the strongest element of the Today column ---------- */
+.next-card{border-radius:12px;padding:.85rem .95rem .8rem;background:var(--panel);border:1px solid var(--line);
+  --c:var(--text-2);--cbg:transparent}
+.next-card[data-st="emer"]{--c:var(--s-emer);--cbg:var(--s-emer-bg);border-color:var(--s-emer)}
+.next-card[data-st="alert"]{--c:var(--s-alert);--cbg:var(--s-alert-bg);border-color:color-mix(in srgb,var(--s-alert) 60%,var(--line))}
+.next-card[data-st="prev"]{--c:var(--s-prev);--cbg:var(--s-prev-bg)}
+.next-card[data-st="ok"]{--c:var(--s-ok)}
+.next-card{background:color-mix(in srgb,var(--cbg) 100%,var(--panel))}
+.nc-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap}
+.nc-pill{font-family:var(--body);font-weight:700;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--c);
+  border:1px solid currentColor;border-radius:999px;padding:.1rem .55rem}
+.next-card[data-st="emer"] .nc-pill{background:var(--s-emer-solid);border-color:var(--s-emer-solid);color:var(--bg)}
+.nc-who{font-size:.78rem;color:var(--text-2)}
+.nc-title{margin:.45rem 0 0;font-family:var(--body);font-weight:600;font-size:1.12rem;line-height:1.3;color:var(--text)}
+.nc-note{margin:.25rem 0 0;font-size:.85rem;color:var(--text-2)}
+.nc-steps{list-style:none;margin:.55rem 0 0;padding:0;display:grid;gap:.35rem}
+.nc-steps li{display:grid;grid-template-columns:22px 1fr;gap:.6rem;align-items:start}
+.nc-steps .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:.75rem;font-weight:700;font-variant-numeric:tabular-nums;
+  border:1.5px solid var(--c);color:var(--c)}
+.nc-steps b{display:block;font-weight:500;font-size:.92rem;line-height:1.3}
+.nc-steps small{display:block;font-size:.76rem;color:var(--text-2)}
+
+/* the red strip repeated the Emergency card word for word: the card now carries it (role="alert" kept on the strip for screen readers) */
+body.sev3 .alertbar{display:block;position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);padding:0;border:0}
+
+/* ---------- Next steps: expandable, first step is primary ---------- */
+.nc-steps2{display:grid;gap:.35rem;margin-top:.6rem}
+.step{border:1px solid color-mix(in srgb,var(--c) 30%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--bg) 35%,transparent)}
+.step > summary{list-style:none;display:grid;grid-template-columns:22px 1fr 14px;gap:.6rem;align-items:center;padding:.45rem .6rem;cursor:pointer;min-height:40px}
+.step > summary::-webkit-details-marker{display:none}
+.step .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:.75rem;font-weight:700;font-variant-numeric:tabular-nums;border:1.5px solid var(--c);color:var(--c)}
+.step-txt b{display:block;font-weight:500;font-size:.92rem;line-height:1.3}
+.step-txt small{display:block;font-size:.74rem;color:var(--text-2)}
+.step-txt em{display:block;font-style:normal;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--c)}
+.step .chev{color:var(--text-2);transition:transform .2s;font-size:1.1rem;line-height:1}
+.step[open] .chev{transform:rotate(90deg)}
+.step:hover{border-color:var(--c)}
+.step.primary{border-color:var(--c);background:color-mix(in srgb,var(--c) 10%,transparent)}
+.step.primary .n{background:var(--c);color:var(--bg)}
+.step.primary .step-txt b{font-size:1rem;font-weight:600}
+.step-body{padding:0 .7rem .6rem 2.6rem;display:grid;gap:.35rem}
+.step-p{margin:0;font-size:.85rem;line-height:1.4;color:var(--text)}
+.step-ev{margin:0;font-size:.72rem;color:var(--text-2)}
+.step-extra{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
+.step-btn{min-height:34px;padding:0 .8rem;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--text);font-family:var(--body);font-weight:600;font-size:.8rem}
+.step-btn:hover{border-color:var(--c)}
+.nc-actions{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.65rem}
+.nc-btn{display:inline-flex;align-items:center;gap:.45rem;min-height:40px;padding:0 1rem;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--text);font-family:var(--body);font-weight:600;font-size:.86rem}
+.nc-btn:hover{border-color:var(--c)}
+.nc-btn.main{background:var(--c);border-color:var(--c);color:var(--bg)}
+.nc-btn .ic{width:17px;height:17px}
+/* only the open step's detail competes for space: the follow-up list folds while one is open */
+.todaycol.has-open .missions .mission{display:none}
+.todaycol.has-open details.paused{display:none}
+/* emergency: daily follow-up folded and dimmed */
+details.paused{opacity:.6;border:1px dashed var(--line);border-radius:12px;transition:opacity .2s}
+details.paused[open],details.paused:hover{opacity:1}
+details.paused > summary{list-style:none;cursor:pointer;padding:.55rem .8rem;font-size:.85rem;color:var(--text-2)}
+details.paused > summary::-webkit-details-marker{display:none}
+details.paused > summary::after{content:" · Show"; color:var(--text)}
+details.paused[open] > summary::after{content:" · Hide"}
+details.paused .missions{border:0;border-top:1px solid var(--line);border-radius:0 0 12px 12px}
+
+/* ---------- Mission timeline: plain progress, words first ---------- */
+.timeline{display:flex;flex-direction:column;gap:.35rem}
+.tl-cap{margin:0;font-size:.85rem;color:var(--text-2);align-items:baseline}
+.tl-cap b{font-family:var(--body);font-weight:600;color:var(--text)}
+.tl-cap .big{font-size:1.05rem;font-variant-numeric:tabular-nums}
+.tl-track{height:14px}
+.tl-track::before{top:6px;height:2px;border-radius:2px}
+.tl-fill{top:6px;height:2px;box-shadow:none;background:var(--s-prev)}
+.tl-pt{top:2px;width:10px;height:10px;transform:translateX(-50%);border-radius:50%;background:var(--bg);border:1.5px solid var(--text-2)}
+.tl-pt.done{background:var(--s-prev);border-color:var(--s-prev)}
+.tl-pt.today{background:var(--bg);border-color:var(--s-prev)}
+.tl-pt.next{border-color:var(--text);box-shadow:none;animation:none}
+.tl-you{display:none}
+.tl-ends{display:flex;justify-content:space-between;font-size:.7rem;color:var(--text-2);margin:0 2px}
+
+/* ---------- Missions: plain health-app list (no diamonds, no emoji, no strike-through) ---------- */
+.missions{clip-path:none;border-radius:12px;background:var(--panel)}
+.m-head{font-family:var(--body);font-weight:600;font-size:.95rem}
+.m-count{color:var(--text-2);font-weight:500;font-variant-numeric:tabular-nums}
+.mission{grid-template-columns:28px 1fr auto;column-gap:.8rem;animation:none}
+.mission .mi{width:28px;height:28px;border:0;background:none;transform:none;display:block}
+.ring2{width:28px;height:28px;display:block}
+.ring2 circle{fill:none;stroke-width:2}
+.ring2 .rt{stroke:var(--line)}
+.ring2 .ra{stroke:var(--s-ok);stroke-linecap:round;transition:stroke-dashoffset .4s}
+.ring2 .rc{fill:none;stroke:var(--bg);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.mission.done .ring2 .rt{fill:var(--s-ok);stroke:var(--s-ok)}
+.mission.done .ring2 .rc{opacity:1}
+.mission h4{font-family:var(--body);font-weight:600;font-size:.95rem}
+.mission.done .mi{background:none}
+.mission.done h4{text-decoration:none;color:var(--text-2)}
+.mission.done .mbar i{background:var(--s-ok)}
+.mbtn{clip-path:none;border-radius:999px;border:1px solid var(--line);background:none;color:var(--text);font-family:var(--body);font-weight:600;font-size:.85rem;min-width:64px;min-height:34px;padding:0 .9rem}
+.mbtn:hover{border-color:var(--s-ok);background:color-mix(in srgb,var(--s-ok) 10%,transparent)}
+.mission.done .mbtn{visibility:hidden}
+.mission summary{font-family:var(--body);color:var(--text-2);font-size:.78rem;list-style:none}
+.mission summary::-webkit-details-marker{display:none}
+.mission summary::after{content:" ›"}
+.m-done{font-family:var(--body);color:var(--s-ok)}
+@media (min-width:900px){ .todaycol{padding:.6rem .9rem .6rem!important} .todaycol .card{margin-top:.25rem}
+  /* demo dock lives in the header row, so it never covers the console */
+  .dock{top:calc(env(safe-area-inset-top,0px) + 60px);bottom:auto}
+  .dock.min{top:calc(env(safe-area-inset-top,0px) + 7px);right:200px;box-shadow:none}
+  /* multi-pick question: 2 × 2 grid instead of a tall list */
+  #flow .chips:not(.row){grid-template-columns:1fr 1fr;margin-top:.55rem}
+  #flow .chip{padding:.5rem .65rem}
+  #flow .go{margin-top:.55rem}
+  #flow .prog{margin-top:.55rem} }
+@media (min-width:900px) and (max-height:800px){
+  .holo{height:104px}
+  .holo .ring,.holo .ticks{transform:scale(.56)} .holo .lumi{transform:scale(.58)}
+  .holo .beam,.holo .emitter{transform:scale(.6);opacity:.6}
+  .timeline{padding:.4rem 1rem .35rem}
+  #flow .tx{padding:.55rem .8rem}
+  #sToday{padding-bottom:.4rem}
+  #flow .chips{gap:.35rem}
+  #flow .chip{padding:.42rem .6rem}
+  .dev-head{padding:.5rem 1rem}
+}
+.todaycol .t-h{margin-bottom:.2rem}
+.todaycol .m-head{padding:.4rem .7rem;font-size:.92rem}
+
+@media (min-width:900px){
+  .stage{grid-template-columns:minmax(0,1100px)!important;padding:.9rem 24px 1rem!important}
+  .device{height:calc(100dvh - var(--topH,52px) - 2rem)!important;
+    grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);
+    grid-template-rows:auto auto auto auto minmax(0,1fr) auto auto;
+    grid-template-areas:"head head" "alert alert" "tl tl" "tabs side" "main side" "partial side" "voice side"}
+  .todaycol{border-top:0;border-left:1px solid var(--line);overflow:hidden;padding-top:.85rem}
+  #sToday.on{display:flex;flex-direction:column;overflow:hidden}
+  .holo{height:128px;flex:none}
+  .holo .ring,.holo .ticks{transform:scale(.7);transform-origin:50% 0} .holo .lumi{transform:scale(.72);transform-origin:50% 0}
+  .holo .beam,.holo .emitter{transform:scale(.8)}
+  #flow .tx{margin-top:.55rem}
+  #flow .tx .msg{font-size:1.02rem}
+  .scanwrap svg{height:240px;width:auto}
+}
+
+/* ---------- Block 3 · vital-sign cards ----------
+   One card per measurement: name + status in words, big tabular value + unit, a trend line drawn over the
+   published ISS in-flight band, and that band with its citation. Values come from HemoMindCore.buildIgcView(). */
+.vitals{grid-area:vit;padding:.75rem 1rem 1rem;border-top:1px solid var(--line);min-width:0}
+.vitals h3{margin:0 0 .45rem;font-family:var(--body);font-weight:600;font-size:.95rem;display:flex;justify-content:space-between;align-items:baseline;gap:.5rem}
+.vitals h3 small{font-weight:400;font-size:.72rem;color:var(--text-2)}
+.vc-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:.45rem}
+.vc{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.5rem .65rem .45rem;min-width:0;display:grid;
+  grid-template-columns:1fr auto;grid-template-areas:"name st" "val spark" "ref ref";column-gap:.5rem;align-items:center}
+.vc-name{grid-area:name;font-size:.8rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vc-st{grid-area:st;font-size:.68rem;font-weight:600;display:inline-flex;align-items:center;gap:.3rem;color:var(--s-ok);white-space:nowrap}
+.vc-st::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.vc[data-st="out"] .vc-st{color:var(--s-alert)}
+.vc[data-st="watch"] .vc-st{color:var(--s-alert)}
+.vc[data-st="emer"] .vc-st{color:var(--s-emer)}
+.vc[data-st="out"],.vc[data-st="watch"]{border-color:color-mix(in srgb,var(--s-alert) 55%,var(--line))}
+.vc[data-st="emer"]{border-color:var(--s-emer);background:color-mix(in srgb,var(--s-emer-bg) 100%,var(--panel))}
+.vc-val{grid-area:val;display:flex;align-items:baseline;gap:.25rem;min-width:0}
+.vc-val .num{font:600 1.45rem/1.15 var(--body);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.vc-val .word{font:600 1rem/1.25 var(--body)}
+.vc-unit{font-size:.72rem;color:var(--text-2)}
+.vc-spark{grid-area:spark;width:64px;height:22px;display:block}
+.vc-spark .band{fill:color-mix(in srgb,var(--s-prev) 16%,transparent)}
+.vc-spark .ln{fill:none;stroke:var(--text-2);stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round}
+.vc-spark .dot{fill:var(--s-ok)} .vc[data-st="out"] .vc-spark .dot{fill:var(--s-alert)}
+.vc-ref{grid-area:ref;font-size:.68rem;color:var(--text-2);line-height:1.3;margin-top:.1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vc-ref a{color:var(--text-2);text-underline-offset:2px}
+
+@media (min-width:1200px){
+  .stage{grid-template-columns:minmax(0,1320px)!important}
+  .device{grid-template-columns:minmax(240px,.58fr) minmax(0,.92fr) minmax(0,1.15fr)!important;
+    grid-template-areas:"head head head" "alert alert alert" "tl tl tl" "vit tabs side" "vit main side" "vit partial side" "vit voice side"!important}
+  .vitals{border-top:0;border-right:1px solid var(--line);overflow:hidden;padding:.6rem .8rem;display:flex;flex-direction:column}
+  .vc-list{grid-template-columns:1fr;gap:.45rem;align-content:start}
+  .vc{padding:.35rem .6rem;align-content:center}
+  .vitals h3 small{display:none}   /* each card already states its ISS band */
+}
+@media (min-width:1200px) and (max-height:800px){
+  .next-card{padding:.65rem .8rem .6rem}
+  .nc-title{font-size:1rem;margin-top:.35rem}
+  .nc-steps{margin-top:.45rem;gap:.25rem}
+  .todaycol .mission{padding:.3rem .7rem}
+  .vc-val .num{font-size:1.25rem}
+  .vc-list{gap:.3rem}
+  .nc-actions{margin-top:.45rem;gap:.35rem} .nc-btn{min-height:34px;font-size:.82rem}
+  .step > summary{min-height:34px;padding:.35rem .6rem} .nc-steps2{margin-top:.45rem;gap:.3rem}
+}
+@media (min-width:900px) and (max-width:1199px){
+  /* mid widths: the cards run as one row under the timeline; the page may scroll here */
+  .device{height:auto!important;grid-template-areas:"head head" "alert alert" "tl tl" "vit vit" "tabs side" "main side" "partial side" "voice side"!important}
+  .vc-list{grid-template-columns:repeat(3,1fr)}
+}
+@media (max-width:899px){ .device{grid-template-areas:"head" "alert" "tl" "tabs" "main" "partial" "voice" "side" "vit"!important} }
+@media (max-width:560px){ .vc-list{grid-template-columns:1fr} }
+/* steps: who does it sits on the same line when it fits (saves a line per step) */
+.nc-steps b{display:inline}
+.nc-steps small{display:inline;margin-left:.35rem}
+.nc-steps small::before{content:"· "}
+.live, .stats{display:none}
+.top{justify-content:space-between}
+.agent-btn{display:inline-flex;align-items:center;gap:.5rem;min-height:40px;padding:0 .95rem;background:var(--panel);border:1px solid var(--line);color:var(--text);
+  font-family:var(--display);font-weight:600;font-size:.88rem;border-radius:999px}
+.agent-btn:hover{border-color:var(--cyan)}
+.agent-btn[aria-expanded="true"]{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,var(--panel))}
+.sevdot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+body.sev2 .sevdot{background:var(--amber)}
+body.sev3 .sevdot{background:var(--crimson)}
+/* behind-the-app drawer */
+.drawer{position:fixed;top:0;right:0;bottom:0;z-index:90;width:min(540px,100vw);overflow-y:auto;overscroll-behavior:contain;
+  background:var(--bg);border-left:1px solid var(--line);box-shadow:-20px 0 60px #0009;transform:translateX(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1);visibility:hidden}
+.drawer.open{transform:none;visibility:visible}
+.drawer .agent.panel{clip-path:none;border:0;background:transparent;min-height:100%}
+.drawer .panel-head{position:sticky;top:0;z-index:2;background:var(--bg)}
+.drawer-x{width:40px;height:40px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:.95rem}
+.scrim{position:fixed;inset:0;z-index:85;background:#02060acc}
+.scrim[hidden]{display:none}
+details.fold2{margin-top:.6rem;border-top:1px solid var(--line);padding-top:.6rem}
+details.fold2 > summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:.95rem;color:var(--muted);min-height:36px;display:flex;align-items:center;gap:.5rem}
+details.fold2[open] > summary{color:var(--text);margin-bottom:.4rem}
+/* demo dock: a small pill until opened */
+.dock.min{width:auto;padding:.35rem .4rem .35rem .8rem;border-radius:999px;border-style:dashed}
+.dock.min .dk-h{gap:.8rem;align-items:center}
+.dock.min .dk-h button{background:var(--amber);color:var(--bg);text-decoration:none;border-radius:999px;padding:.25rem .7rem;font-weight:600}
+.dk-protos{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem;border-top:1px dashed color-mix(in srgb,var(--amber) 45%,transparent);padding-top:.5rem}
+.dk-protos .grp{flex-basis:100%;font-family:var(--display);font-size:.72rem;color:var(--muted)}
+.dk-protos .scn{width:auto;font-size:.78rem;padding:.3rem .65rem}
+@media (max-width:600px){
+  /* phone: the collapsed pill sits in the flow above the console so it never covers the tabs */
+  .dock.min{position:relative;left:auto;right:auto;bottom:auto;margin:.6rem auto 0;width:max-content;flex-wrap:nowrap;box-shadow:none}
+  .stage{padding-top:.5rem}
+}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 </style>
@@ -327,33 +696,44 @@ body.listening .holo::after{content:"";position:absolute;width:210px;height:210p
 
 <header class="top">
   <div class="brand">Vessel<span>Watch</span></div>
+  <button type="button" class="agent-btn" id="agentBtn" aria-expanded="false" aria-controls="drawer"><i class="sevdot" aria-hidden="true"></i>How Lumi decides</button>
 </header>
 
-<div class="demo" role="group" aria-label="Demo controls, not part of the app">
-  <div class="demo-id"><b>🎬 Demo controls</b><span>Not part of the app. Jumps to a simulated day.</span></div>
-  <button class="scn" data-s="normal" aria-pressed="false"><i></i>Normal day</button>
-  <button class="scn" data-s="investigate" aria-pressed="false"><i></i>Needs a closer look</button>
-  <button class="scn" data-s="red" aria-pressed="false"><i></i>Red alert</button>
-  <button class="scn" data-s="free" aria-pressed="true"><i></i>Live check-in</button>
-  <span class="sep" aria-hidden="true"></span>
-  <span class="grp">Other prototypes</span>
-  <span id="protoBtns" style="display:contents"></span>
-</div>
 <section class="protoview" id="protoView" hidden aria-label="Prototype preview">
-  <p class="layer" id="protoLabel"><b>Prototype</b></p>
+  <div style="display:flex;align-items:center;gap:.8rem;flex-wrap:wrap"><button type="button" class="agent-btn" id="protoBack">← Back to the app</button><p class="layer" id="protoLabel"><b>Prototype</b></p></div>
   <iframe id="protoFrame" title="Prototype preview" allow="autoplay"></iframe>
 </section>
 
+<aside class="dock min" id="dock" role="group" aria-label="Demo controls: clinical scenarios, not part of the app">
+  <div class="dk-h"><b>Demo</b><button type="button" id="dockMin" aria-expanded="false">Show</button></div>
+  <div class="dk-body" style="display:contents">
+    <button class="scn" data-s="NOMINAL" aria-pressed="false"><i></i><span>Nominal<small>Left IJV forward flow · green</small></span></button>
+    <button class="scn" data-s="PRETHROMBOTIC" aria-pressed="false"><i></i><span>Pre-thrombotic<small>Stasis in left IJV · yellow</small></span></button>
+    <button class="scn" data-s="EMERGENCY_THROMBOSIS" aria-pressed="false"><i></i><span>Emergency thrombosis<small>Occlusive clot, left IJV · red</small></span></button>
+    <button class="scn" data-s="free" aria-pressed="true"><i></i><span>Live check-in<small>Talk to Lumi on the current stream</small></span></button>
+    <div class="dk-live" aria-live="off"><span><i class="dot"></i>Mock stream <b id="dkSeq">#0</b></span><span>Earth delay <b id="dkDelay">—</b></span></div>
+    <div class="dk-protos"><span class="grp">Other prototypes</span><span id="protoBtns" style="display:contents"></span></div>
+  </div>
+</aside>
+
 <div class="stage">
   <div class="col">
-  <p class="layer"><b>The app</b> what Rin sees</p>
+  <p class="layer"><b>The app</b> what <span id="crewFirst">the crew member</span> sees</p>
   <div class="device panel" role="application" aria-label="VesselWatch crew console">
-    <div class="dev-head"><span><b>Crew console</b> · Rin Takeda · Flight day <span id="dDay">47</span></span><span class="right"><span class="lchip" id="lchip">Listening for “Lumi”</span><button class="spk" id="voiceToggle" aria-pressed="true" aria-label="Spoken replies on. Tap to mute" title="Spoken replies">🔊</button><span class="tag tag-sim">Simulated</span></span></div>
-    <div class="alertbar" role="alert" id="alertbar">Red alert: your crew medical officer and Earth have been notified.</div>
+    <div class="dev-head"><span><b>Crew console</b> · <span id="crewName">—</span><span hidden> · Flight day <span id="dDay">—</span></span></span><span class="right"><span class="lchip" id="lchip">Listening for “Lumi”</span><button class="spk" id="voiceToggle" aria-pressed="true" aria-label="Spoken replies on. Tap to mute" title="Spoken replies"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button><span class="tag tag-sim">Simulated</span></span></div>
+    <div class="alertbar" role="alert" id="alertbar">Red alert: clot in your left jugular vein. Spacewalks and ARED are blocked. Your crew medical officer is notified and Houston gets the report after the comms delay.</div>
     <div class="timeline" aria-label="Mission timeline">
-      <div class="tl-track"><div class="tl-fill" id="tlFill"></div><div id="tlPoints"></div><div class="tl-you" id="tlYou"></div></div>
       <div class="tl-cap" id="tlCap" aria-live="polite"></div>
+      <div class="tl-track"><div class="tl-fill" id="tlFill"></div><div id="tlPoints"></div><div class="tl-you" id="tlYou"></div></div>
+      <div class="tl-ends" aria-hidden="true"><span>Launch</span><span>Landing</span></div>
     </div>
+
+    <section class="vitals" id="vitals" aria-labelledby="vitTitle">
+      <h3 id="vitTitle">Vital signs <small>Band: ISS in-flight range · simulated</small></h3>
+      <ul class="vc-list" id="vcList"></ul>
+    </section>
+
+    <div class="live" id="liveStrip" aria-label="Live telemetry"></div>
 
     <section class="screen on" id="sToday" aria-live="polite">
       <div class="holo" id="holo">
@@ -385,57 +765,69 @@ body.listening .holo::after{content:"";position:absolute;width:210px;height:210p
       <div class="zone-info" id="zoneInfo"><h3>Scan not run yet</h3><p>Pick a scenario or finish today’s check-in.</p></div>
     </section>
 
+    <aside class="todaycol" id="today" aria-label="Today"></aside>
+
 
     <div class="partial" id="partial" aria-live="polite"></div>
     <form class="voicebar" id="sayForm" autocomplete="off">
-      <button type="button" class="listen" id="listenBtn" aria-pressed="false" aria-label="Turn listening mode on" title="Listening mode: say “Lumi, check in”" hidden>👂</button>
-      <button type="button" class="mic" id="mic" aria-label="Talk to Lumi" hidden>🎙</button>
+      <button type="button" class="listen" id="listenBtn" aria-pressed="false" aria-label="Turn listening mode on" title="Listening mode: say “Lumi, check in”" hidden><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 18.5a3.5 3.5 0 0 0 6.5-1.8c0-2.4 3.5-3.2 3.5-7.2a6 6 0 0 0-12 0"/><path d="M10 9.5a2 2 0 0 1 4 0c0 1.4-1.5 1.8-1.5 3.2"/></svg></button>
+      <button type="button" class="mic" id="mic" aria-label="Talk to Lumi" hidden><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
       <label class="sr" for="sayInput">Tell Lumi how you feel</label>
       <input class="say-input" id="sayInput" placeholder="Tell Lumi, e.g. “headache” or “drank water”">
       <button class="send" type="submit">Send</button>
     </form>
     <nav class="tabs" aria-label="Console sections">
-      <button data-tab="sToday" aria-current="true"><span>◈</span>Check-in</button>
-      <button data-tab="sBody" aria-current="false"><span>◎</span>Body scan</button>
+      <button data-tab="sToday" aria-current="true">Check-in</button>
+      <button data-tab="sBody" aria-current="false">Body scan</button>
     </nav>
   </div>
 
   </div>
-  <div class="col">
-  <p class="layer"><b>Behind the app</b> how the agent decides</p>
+  <aside class="drawer" id="drawer" aria-labelledby="drawerTitle" inert>
   <section class="agent panel" aria-label="Medical agent reasoning">
-    <div class="panel-head">Medical agent <span class="tag tag-sim">Playbook v0.1, pending clinician review</span></div>
+    <div class="panel-head"><span>Behind the app · medical agent <span class="tag tag-sim">Playbook v0.1, pending clinician review</span></span><button type="button" class="drawer-x" id="drawerX" aria-label="Close">✕</button></div>
     <div class="body">
       <div class="agent-id">
         <div class="badge">MD</div>
-        <div><h2>Flight medicine playbook</h2><p>Rules written the way a flight physician triages, each tied to its evidence. No black box: every recommendation shows which rule fired.</p></div>
+        <div><h2 id="drawerTitle" tabindex="-1">How Lumi decides</h2><p>A flight-medicine playbook, not a black box. Every recommendation shows the rule that fired and its evidence.</p></div>
       </div>
-
-      <div class="sec"><h3>What the agent sees</h3><dl class="inputs" id="inputs"><dt>Status</dt><dd>Waiting for a check-in</dd></dl></div>
 
       <div class="sec"><h3>Assessment</h3>
         <div class="verdict" id="verdict" data-sev="-1"><div class="sev" id="vSev">—</div><p id="vText">Pick a scenario, answer Lumi, or just tell it how you feel.</p></div>
         <p class="checked" id="checked"></p>
       </div>
 
-      <div class="sec"><h3>Rules that matched</h3><div id="rules"></div></div>
-
       <div class="sec"><h3>Actions and who is told</h3><ul class="acts" id="acts"></ul></div>
 
-      <details class="playbook"><summary>See the whole playbook</summary><ul class="pb" id="pb"></ul></details>
+      <div class="sec"><h3>NASA OCHMO-MTB-007 decision <span class="tag tag-sim">Live from HemoMind engine</span></h3><div class="ochmo" id="ochmo" data-st="GREEN"></div></div>
 
-      <p class="caveat">Decision support, not diagnosis. Clot rules follow NASA OCHMO-MTB-007 (2026); red flags are standard emergency signs; sleep, mood and fatigue rules are demo rules, since NASA has not published validated thresholds yet. Every reading here is simulated, and no drug doses are shown.</p>
+      <details class="fold2"><summary>Rules that matched</summary><div id="rules"></div></details>
+      <details class="fold2"><summary>What the agent saw</summary><dl class="inputs" id="inputs"><dt>Status</dt><dd>Waiting for a check-in</dd></dl></details>
+      <details class="fold2"><summary>Live telemetry <span class="tag tag-sim">Simulated within published ISS ranges</span></summary><div class="tiles" id="tiles"></div></details>
+      <details class="fold2"><summary>Houston link</summary><p class="checked" id="commsLine"></p><ul class="queue" id="queue"></ul></details>
+      <details class="fold2"><summary>The whole playbook</summary><ul class="pb" id="pb"></ul></details>
+
+      <p class="caveat">Decision support, not diagnosis. Vital signs, neck ultrasound and the clot decision come from the HemoMind engine: values are simulated inside published ISS in-flight ranges, and the decision is NASA OCHMO-MTB-007 (rev. Jan 2026, p.14) as a pure function, including its apixaban regimen. Red flags are standard emergency signs; sleep, mood and fatigue rules are demo rules, since NASA has not published validated thresholds yet. The crew member is fictional.</p>
     </div>
   </section>
-  </div>
+  </aside>
 </div>
+<div class="scrim" id="scrim" hidden></div>
+<p class="sr" id="srState" aria-live="polite" style="top:0;left:0"></p>
 
+<!-- HemoMind engine: single source of truth for telemetry and the OCHMO-MTB-007 decision.
+     Generated from the HemoMind-AI TypeScript sources: `npm run build:vessel` (see engine/README.md). -->
+<script src="./engine/hemomind-core.js"></script>
 <script type="module">
 import { createAgent, loadPlaybook } from "./agent/agent.js";
 (async function(){
   const $ = id=>document.getElementById(id);
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const BASE_SLEEP = 7.2;
+  // line icons (one stroke style) instead of emoji
+  const SPK_ON  = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>';
+  const SPK_OFF = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>';
+  // Usual sleep = ISS crew mean from the stream (Barger 2014); set from each packet.
+  let BASE_SLEEP = 6.1;
 
   /* =========================================================
      THE MEDICAL AGENT
@@ -453,21 +845,168 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
   const EV_LABEL = {"nasa-protocol":"NASA protocol","clinical-red-flag":"Clinical red flag","peer-reviewed":"Peer-reviewed study","standard-practice":"Standard spaceflight practice","demo-threshold":"Demo threshold, needs a clinician’s value"};
 
   /* =========================================================
-     SCENARIOS (simulated data)
+     HEMOMIND ENGINE (single source of truth)
+     Vitals, sleep, HRV, neck ultrasound, mission day, Earth delay and
+     the OCHMO-MTB-007 decision all come from the NASA mock stream.
+     This page keeps no physiological data of its own.
      ========================================================= */
+  const HM = window.HemoMindCore;
+  if (!HM){ document.body.insertAdjacentHTML("afterbegin", `<p style="position:relative;z-index:70;background:#5a1020;color:#fff;padding:.6rem 16px;margin:0">The HemoMind engine (engine/hemomind-core.js) didn't load.</p>`); throw new Error("HemoMindCore missing"); }
+  const stream = HM.createMockStream({ initialState:"NOMINAL" });
+  let V = HM.buildVesselView(stream.getSnapshot().packet);
+  const CREW = V.crew;
+
+  // Mission plan and logs the telemetry stream does not carry (simulated, fictional mission).
+  const MISSION_PLAN = { lengthDays:232, evaDay:54, exerciseMin7d:110 };
+
+  /* Scenario openers only. The clinical content of each state is the engine's. */
   const SCENARIOS = {
-    normal:{day:32, sleepH:7.3, shortNights:0, mood:"good", lowDays:0, sym:[], scan:{day:30,result:"reduced"}, risk:{}, evaIn:12, landingIn:200, exerciseMin7d:125, restingHR:58, baselineHR:57, hrHighDays:0, anticoag:"none",
-      opener:"Morning, Rin. Here’s today from your band and your check-in."},
-    investigate:{day:47, sleepH:5.2, shortNights:3, mood:"meh", lowDays:1, sym:["headache","puffy"], scan:{day:30,result:"reduced"}, risk:{}, evaIn:11, landingIn:185, exerciseMin7d:95, restingHR:62, baselineHR:57, hrHighDays:1, anticoag:"none",
-      opener:"Morning, Rin. Third short night in a row, and you mentioned a headache and a puffier face."},
-    red:{day:54, sleepH:6.6, shortNights:0, mood:"meh", lowDays:0, sym:["neck"], scan:{day:54,result:"thrombus"}, risk:{}, evaIn:4, landingIn:178, exerciseMin7d:110, restingHR:60, baselineHR:57, hrHighDays:0, anticoag:"none",
-      opener:"Rin, your follow-up neck scan from this morning just came back."}
+    NOMINAL:{ opener:()=>`Morning, ${CREW.firstName}. Here’s today from your wearables and your neck scan.` },
+    PRETHROMBOTIC:{ opener:()=>`${CREW.firstName}, today’s neck scan shows slow, stagnant blood in your left jugular vein.` },
+    EMERGENCY_THROMBOSIS:{ opener:()=>`${CREW.firstName}, your neck scan from this morning just came back.` }
   };
-  const SCAN_LABEL = {reduced:"Antegrade, slow (common in flight)", stagnant:"Stagnant", thrombus:"Suspected clot", antegrade:"Antegrade", retrograde:"Retrograde"};
+  const SCAN_LABEL = {stagnant:"Stagnant (stasis)", thrombus:"Clot (thrombus)", antegrade:"Forward (antegrade)", retrograde:"Reverse (retrograde)"};
 
   let S;
-  function freshState(){ return {day:47, sleepH:5.2, shortNights:0, mood:null, lowDays:0, sym:new Set(), scan:{day:30,result:"reduced"}, risk:{}, evaIn:11, landingIn:185, exerciseMin7d:95, restingHR:59, baselineHR:57, hrHighDays:0, anticoag:"none"}; }
-  function loadScenario(k){ const d=SCENARIOS[k]; S={...d, sym:new Set(d.sym), scan:{...d.scan}, risk:{...d.risk}}; $("dDay").textContent=S.day; }
+  /* Agent state = stream signals + the crew member's own reports (filled by the check-in). */
+  function freshState(){
+    const g = V.signals;
+    BASE_SLEEP = +g.baselineSleepH.toFixed(1);
+    return { day:g.day, sleepH:g.sleepH, shortNights:0, mood:null, lowDays:0, sym:new Set(), scan:{...g.scan},
+      risk:{family:g.risk.family, thrombo:g.risk.thrombophilia, hormone:g.risk.hormone},
+      evaIn:MISSION_PLAN.evaDay-g.day, landingIn:MISSION_PLAN.lengthDays-g.day, exerciseMin7d:MISSION_PLAN.exerciseMin7d,
+      restingHR:g.restingHR, baselineHR:g.baselineHR, hrHighDays:0, anticoag:"none" };
+  }
+  function loadScenario(k){ stream.setSimulationState(k); renderLive(HM.buildVesselView(stream.getSnapshot().packet), true); S=freshState(); $("dDay").textContent=S.day; }
+
+  /* ---------- clinical state (block 1): derived only from data that already exists ----------
+     Inputs: the agent's last severity (0–3, null before any check-in) and the OCHMO-MTB-007 status.
+     emer  = severity 3 or OCHMO RED      (red flags RF-1/RF-2, clot VT-1)
+     alert = severity 2 or OCHMO YELLOW   (VT-2/3/4, CV-1/2 …)
+     prev  = severity 1                   (WB-1, LD-1, EX-1, BH-1: follow-up and reminders)
+     ok    = otherwise
+     Vitals are not an input here: the mock stream keeps them inside the published ISS ranges by design,
+     and buildVesselView() does not expose a per-vital in-range flag. Add one in the engine to use real data. */
+  function clinicalState(severity, ochmoStatus, vitalOut=false){
+    if (severity>=3 || ochmoStatus==="RED") return "emer";
+    if (severity===2 || ochmoStatus==="YELLOW" || vitalOut) return "alert";
+    if (severity===1) return "prev";
+    return "ok";
+  }
+  let lastSeverity = null;   // set by showAssessment(), cleared by resetPanel()
+  let vitalsOut = false;     // set by renderVitals(): any vital outside its published ISS range → at least "alert"
+  function applyClinicalState(){
+    const st = clinicalState(lastSeverity ?? -1, V.decision.status, vitalsOut);
+    if (document.body.dataset.state !== st){
+      const first = !document.body.dataset.state;
+      document.body.dataset.state = st;
+      // Screen readers: a calm, polite note on change (emergencies are also announced by the role="alert" strip).
+      const sr = document.getElementById("srState");
+      if (sr && !first) sr.textContent = {emer:"Status: emergency. See what happens next.", alert:"Status: alert. A reading or finding needs a closer look.", prev:"Status: follow-up.", ok:"Status: stable."}[st];
+    }
+  }
+
+  /* ---------- live rendering from the stream ---------- */
+  const esc2 = t=>String(t).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  let lastDecisionKey = "";
+  function renderDecision(d){
+    const rx = d.prescription;
+    $("ochmo").dataset.st = d.status;
+    $("ochmo").innerHTML = `
+      <div class="oh"><span class="light" aria-hidden="true"></span><span class="ow">${d.status} · ${esc2(d.statusWord)}</span><span class="muted">${esc2(d.protocol)} · branch ${d.branch}</span></div>
+      <h4>${esc2(d.headline)}</h4>
+      <p>${esc2(d.diagnosis)}</p>
+      <p class="muted">Left IJV: ${esc2(d.ijv.flow)} · ${esc2(d.ijv.grade)} · area ${esc2(d.ijv.csa)}</p>
+      <div class="rules2">${d.flightRules.map(r=>`<span class="badge2 ${r.authorized?"":"no"}">${esc2(r.label)}: ${esc2(r.text)}</span>`).join("")}</div>
+      <p><b>${esc2(d.operational)}</b></p>
+      <div class="rx ${rx.give?"give":""}"><b>${esc2(rx.headline)}</b>
+        ${rx.phases.length?`<ol>${rx.phases.map(p=>`<li><b>${esc2(p.label)}:</b> ${esc2(p.text)}</li>`).join("")}</ol>`:""}
+        ${rx.washout?`<p class="muted">${esc2(rx.washout)}</p>`:""}
+        <p class="muted">Hormonal therapy: ${esc2(rx.hormone)}</p></div>
+      <ul class="care">${d.care.map(c=>`<li class="${c.ochmo?"":"nonochmo"}">${esc2(c.label)}. ${esc2(c.detail)}<span>${esc2(c.basis)}</span></li>`).join("")}</ul>
+      <details><summary>Evidence for this scenario</summary>${d.evidence.map(e=>`<blockquote>“${esc2(e.quote)}” · ${esc2(e.cite)}</blockquote>`).join("")}</details>`;
+  }
+  function renderLive(v, force){
+    V = v;
+    $("crewName").textContent = v.crew.name; $("crewFirst").textContent = v.crew.firstName;
+    $("dkSeq").textContent = "#"+v.seq; $("dkDelay").textContent = v.comms.oneWayText;
+    const t = Object.fromEntries(v.tiles.map(x=>[x.key,x]));
+    const rule = v.decision.flightRules;
+    $("liveStrip").innerHTML =
+      `<span>HR <b>${t.heartRateBpm.value}</b> bpm</span><span>BP <b>${t.systolicMmHg.value}</b> (MAP ${t.meanArterialMmHg.value})</span>`+
+      `<span>HRV <b>${t.hrvRmssdMs.value}</b> ms</span><span>Sleep <b>${t.sleepHours.value}</b> h</span>`+
+      `<span>Neck vein <b>${esc2(v.decision.ijv.flow)}</b></span><span>Earth <b>${v.comms.oneWayText}</b> one way</span>`+
+      rule.map(r=>`<span class="badge2 ${r.authorized?"":"no"}">${r.id} ${r.authorized?"OK":"BLOCKED"}</span>`).join("");
+    $("tiles").innerHTML = v.tiles.map(x=>`<div class="tile" data-g="${x.group}" ${x.flag?`data-flag="${x.flag}"`:""}><div class="tl">${esc2(x.label)}</div><div class="tv">${esc2(x.value)}${x.unit?`<small>${esc2(x.unit)}</small>`:""}</div>${x.ref?`<div class="tr">${esc2(x.ref)}${x.cite?` · <a href="${x.cite.url}" target="_blank" rel="noopener" title="${esc2(x.cite.quote)}">${esc2(x.cite.short)}</a>`:""}</div>`:""}</div>`).join("") +
+      `<div class="tile" data-g="mission"><div class="tl">Mission day</div><div class="tv">${v.missionDayText}</div><div class="tr">Next neck scan: ${v.screening.next?`flight day ${v.screening.next}`:"none scheduled"}</div></div>`+
+      `<div class="tile" data-g="mission"><div class="tl">Earth delay, one way</div><div class="tv">${v.comms.oneWayText}</div><div class="tr">Round trip ${v.comms.roundTripText} · NASA Earth–Mars distance / c</div></div>`;
+    const key = v.decision.status+v.decision.branch;
+    if (force || key!==lastDecisionKey){ lastDecisionKey=key; renderDecision(v.decision); applyClinicalState(); }
+    $("commsLine").textContent = `Autonomous mode: the crew acts locally. Earth is ${v.comms.oneWayText} away one way (${v.comms.roundTripText} round trip).`;
+    const now = Date.now();
+    $("queue").innerHTML = v.comms.queue.length ? v.comms.queue.slice().reverse().map(q=>{
+      const left = Math.max(0, Math.round((q.etaEarthAt-now)/1000));
+      const st = q.status==="DELIVERED" ? "Delivered to Houston" : q.status==="IN_FLIGHT" ? `In flight · arrives in ${HM.formatDuration(left)}` : "Queued";
+      return `<li data-s="${q.status}"><b>${st}</b><br>${esc2(q.summary)}<br><code>${q.id}</code></li>`;
+    }).join("") : `<li class="empty">No medical events queued for Houston.</li>`;
+  }
+  /* ---------- Block 3 · vital-sign cards ----------
+     Source: HM.buildIgcView(packet, history) from the same engine bundle: value, unit, history, the published
+     interval (ref.lo/hi) and withinPublished. Built once, then patched every packet (no rebuild, focus stays). */
+  const VITALS = [
+    { key:"heartRateBpm", name:"Heart rate" },
+    { key:"systolicMmHg", name:"Blood pressure", pair:"diastolicMmHg" },
+    { key:"hrvRmssdMs",   name:"Heart rate variability" },
+    { key:"sleepHours",   name:"Sleep last night" },
+    { key:"ijvCsaMm2",    name:"Neck vein area" },
+  ];
+  let vitalMetrics = {};
+  const refShort = m => m.ref.intervalLabel==="95% CI"
+    ? `ISS ${m.ref.lo}–${m.ref.hi} ${m.unit}`
+    : `ISS ${m.ref.center} ± ${+((m.ref.hi-m.ref.lo)/2).toFixed(2)} ${m.unit}`;
+  function vcSpark(m){
+    const W=64,H=22,P=3, s=m.history.length?m.history:[m.value];
+    const mn=Math.min(...s,m.ref.lo), mx=Math.max(...s,m.ref.hi), y=v=>H-P-((v-mn)/((mx-mn)||1))*(H-2*P), x=i=>P+i*(W-2*P)/Math.max(1,s.length-1);
+    return `<svg class="vc-spark" viewBox="0 0 ${W} ${H}" aria-hidden="true"><rect class="band" x="0" y="${y(m.ref.hi).toFixed(1)}" width="${W}" height="${Math.max(1,y(m.ref.lo)-y(m.ref.hi)).toFixed(1)}" rx="2"/>
+      <polyline class="ln" points="${s.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ")}"/><circle class="dot" cx="${x(s.length-1).toFixed(1)}" cy="${y(s[s.length-1]).toFixed(1)}" r="2.2"/></svg>`;
+  }
+  function vitalValue(def){ const m=vitalMetrics[def.key]; return def.pair ? `${m.display}/${vitalMetrics[def.pair].display}` : m.display; }
+  function vitalIn(def){ return vitalMetrics[def.key].withinPublished && (!def.pair || vitalMetrics[def.pair].withinPublished); }
+  function flowCard(d){
+    const st = d.status==="RED"?"emer":d.status==="YELLOW"?"watch":"in";
+    const word = d.status==="RED"?"Clot":d.status==="YELLOW"?"Stagnant":"Forward";
+    return `<li class="vc" data-st="${st}" id="vc-flow"><span class="vc-name">Neck vein flow</span><span class="vc-st">${d.status==="RED"?"Act now":d.status==="YELLOW"?"Watch":"Normal"}</span>
+      <div class="vc-val"><span class="word">${word}</span></div><span></span>
+      <span class="vc-ref">${esc2(d.ijv.grade)} · NASA OCHMO-MTB-007</span></li>`;
+  }
+  function buildVitals(){
+    $("vcList").innerHTML = VITALS.map(def=>{ const m=vitalMetrics[def.key];
+      return `<li class="vc" id="vc-${def.key}"><span class="vc-name">${def.name}</span><span class="vc-st"></span>
+        <div class="vc-val"><span class="num"></span><span class="vc-unit">${esc2(m.unit)}</span></div><span class="sp"></span>
+        <span class="vc-ref">${refShort(m)} · <a href="${m.cite.url}" target="_blank" rel="noopener" title="${esc2(m.cite.quote)}">${esc2(m.cite.short)}</a></span>
+        <span class="sr"></span></li>`; }).join("") + flowCard(V.decision);
+  }
+  let vitalsBuilt=false, lastFlow="";
+  function renderVitals(snap){
+    const iv = HM.buildIgcView(snap.packet, snap.history, null);
+    vitalMetrics = Object.fromEntries(iv.metrics.map(m=>[m.key,m]));
+    if (!vitalsBuilt){ buildVitals(); vitalsBuilt=true; }
+    VITALS.forEach(def=>{
+      const li=$("vc-"+def.key), m=vitalMetrics[def.key], ok=vitalIn(def);
+      li.dataset.st = ok ? "in" : "out";
+      li.querySelector(".num").textContent = vitalValue(def);
+      li.querySelector(".vc-st").textContent = ok ? "In range" : "Out of range";
+      li.querySelector(".sp").innerHTML = vcSpark(m);
+      li.querySelector(".sr").textContent = `${def.name} ${vitalValue(def)} ${m.unit}, ${ok?"inside":"outside"} the published ISS in-flight range.`;
+    });
+    const fk = V.decision.status+V.decision.ijv.grade;
+    if (fk!==lastFlow){ lastFlow=fk; $("vc-flow").outerHTML = flowCard(V.decision); }
+    vitalsOut = VITALS.some(def=>!vitalIn(def));
+  }
+
+  stream.subscribe(snap=>{ renderLive(HM.buildVesselView(snap.packet)); renderVitals(snap); applyClinicalState(); });
+  renderLive(V, true); renderVitals(stream.getSnapshot());
+  stream.start();
 
   /* =========================================================
      LUMI + UI
@@ -547,7 +1086,7 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
     const dx=e.clientX-(r.left+r.width/2), dy=e.clientY-(r.top+r.height*.45), d=Math.hypot(dx,dy)||1, k=Math.min(1,d/220);
     lumi.style.setProperty("--lx",(dx/d*5*k).toFixed(1)+"px"); lumi.style.setProperty("--ly",(dy/d*3.5*k).toFixed(1)+"px");
   }, {passive:true});
-  const PET_LINES = {ok:["Mrrp!","Purrr…","Hi Rin!","Beep boop, happy."], worried:["I’m right here.","We’ll sort it out.","Purr… you’re not alone."], alert:["Stay with me. Help is coming.","I’m here. Ines is on the way."]};
+  const PET_LINES = {ok:["Mrrp!","Purrr…",`Hi ${CREW.firstName}!`,"Beep boop, happy."], worried:["I’m right here.","We’ll sort it out.","Purr… you’re not alone."], alert:["Stay with me. Help is coming.","I’m here. Ines is on the way."]};
   let petT, sayT;
   function purr(){
     try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)(); const t=actx.currentTime;
@@ -577,6 +1116,8 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
     root.querySelectorAll(".msg[data-t]").forEach(el=>{
       const t = el.dataset.t; el.removeAttribute("data-t");
       if (reduce){ el.textContent=t; return; }
+      // Screen readers get the full sentence once; the letter-by-letter typing is visual only.
+      const sr=document.createElement("span"); sr.className="sr"; sr.textContent=t; el.before(sr); el.setAttribute("aria-hidden","true");
       el.textContent=""; el.classList.add("caret"); let i=0;
       const iv=setInterval(()=>{ el.textContent=t.slice(0,++i); if(i>=t.length){clearInterval(iv); el.classList.remove("caret");} }, 14);
     });
@@ -584,9 +1125,15 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
   const esc = s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
   function tx(msg, sub, tone, from){ return `<div class="tx ${tone||""}"><div class="from">${from||"Lumi"}</div><div class="msg" data-t="${esc(msg)}"></div>${sub?`<small>${sub}</small>`:""}</div>`; }
   const flow = $("flow");
-  $("sToday").addEventListener("scroll", e=>{ $("holo").classList.toggle("compact", e.currentTarget.scrollTop > 60); }, {passive:true});
-  function render(html){ flow.innerHTML = html; typeIn(flow); flow.parentElement.scrollTop = 0; }
-  function append(html){ const d=document.createElement("div"); d.innerHTML=html; while(d.firstChild) flow.appendChild(d.firstChild); typeIn(flow); flow.lastElementChild?.scrollIntoView({block:"nearest",behavior:reduce?"auto":"smooth"}); }
+  // The page scrolls like a document (no inner scroll box, nothing pinned inside the console).
+  function measureBars(){ document.documentElement.style.setProperty("--topH", document.querySelector(".top").offsetHeight+"px"); }
+  measureBars(); addEventListener("resize", measureBars);
+  function render(html){
+    flow.innerHTML = html; typeIn(flow);
+    const dev = document.querySelector(".device"), y = dev.getBoundingClientRect().top + scrollY - document.querySelector(".top").offsetHeight - 8;
+    if (scrollY > y) scrollTo({top:y, behavior:reduce?"auto":"smooth"});
+  }
+  function append(html){ const d=document.createElement("div"); d.innerHTML=html; while(d.firstChild) flow.appendChild(d.firstChild); while(flow.children.length>4) flow.firstElementChild.remove(); typeIn(flow); flow.lastElementChild?.scrollIntoView({block:"nearest",behavior:reduce?"auto":"smooth"}); }
 
   /* ---------- voice out ---------- */
   let tts=null, voiceOn=true, actx;
@@ -600,7 +1147,7 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
     }catch(_){}
   }
   function syncVoice(){
-    const b=$("voiceToggle"); b.setAttribute("aria-pressed",voiceOn); b.textContent = voiceOn?"🔊":"🔇";
+    const b=$("voiceToggle"); b.setAttribute("aria-pressed",voiceOn); b.innerHTML = voiceOn?SPK_ON:SPK_OFF;
     b.setAttribute("aria-label", voiceOn?"Spoken replies on. Tap to mute":"Spoken replies off. Tap to turn on");
   }
   $("voiceToggle").onclick = ()=>{ voiceOn=!voiceOn; syncVoice(); if(!voiceOn){ tts?.stop().catch(()=>{}); window.speechSynthesis?.cancel(); } };
@@ -641,15 +1188,17 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
     const sev3=["chest","breath","severeHead","neuro"];
     const row=(k,v,cls)=>`<dt>${k}</dt><dd class="${cls||""}">${v}</dd>`;
     $("inputs").innerHTML =
-      row("Sleep", `${S.sleepH.toFixed(1)} h (usual ${BASE_SLEEP} h)${S.shortNights?` · ${S.shortNights} short night${S.shortNights>1?"s":""} in a row`:""}`, S.sleepH<BASE_SLEEP-1?"flag":"") +
+      row("Sleep", `${S.sleepH.toFixed(1)} h (ISS crews ${BASE_SLEEP} h)${S.shortNights?` · ${S.shortNights} short night${S.shortNights>1?"s":""} in a row`:""}`, S.sleepH<BASE_SLEEP-1?"flag":"") +
       row("Mood", S.mood?({good:"Good",meh:"So-so",low:"Low"})[S.mood]:"Not asked yet", S.mood==="low"?"flag":"") +
       row("Symptoms", syms.length?syms.map(s=>SYM_LABEL[s]).join(", "):"None reported", syms.some(s=>sev3.includes(s))?"flag3":syms.length?"flag":"") +
       row("Last neck scan", `Flight day ${S.scan.day}: ${SCAN_LABEL[S.scan.result]}`, S.scan.result==="thrombus"?"flag3":S.scan.result==="stagnant"?"flag":"") +
-      row("Risk factors", (S.risk.family||S.risk.thrombo||S.risk.hormone)?"On record":"None on record") +
+      row("Risk factors", (S.risk.family||S.risk.thrombo||S.risk.hormone)?"On record":"None on record (OCHMO list)") +
+      row("Blood pressure", `${V.tiles.find(t=>t.key==="systolicMmHg").value} mmHg (stream)`) +
+      row("HRV", `${V.tiles.find(t=>t.key==="hrvRmssdMs").value} ms rMSSD (stream)`) +
       row("Next spacewalk", `In ${S.evaIn} days`, S.evaIn<=3?"flag":"") +
       row("Landing", `In ${S.landingIn} days`, S.landingIn<=7?"flag":"") +
       row("Exercise", `${S.exerciseMin7d} min a day this week`, S.exerciseMin7d<60?"flag":"") +
-      row("Resting heart rate", `${S.restingHR} bpm (usual ${S.baselineHR})${S.hrHighDays?` · high ${S.hrHighDays} day${S.hrHighDays>1?"s":""}`:""}`, S.hrHighDays>=3?"flag":"") +
+      row("Heart rate", `${S.restingHR} bpm (ISS crews ${S.baselineHR})${S.hrHighDays?` · high ${S.hrHighDays} day${S.hrHighDays>1?"s":""}`:""}`, S.hrHighDays>=3?"flag":"") +
       row("Anticoagulant", S.anticoag==="none"?"None":S.anticoag, S.anticoag!=="none"?"flag":"");
   }
 
@@ -671,13 +1220,14 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
     zoneText = {
       mind: zones.mind==="ok"?"Sleep and mood look like your usual.":"Sleep or mood is off your baseline. Lumi offered support; it stays private.",
       head: zones.head==="alert"?"Red flag reported. Medical officer called.":zones.head==="watch"?"Headache or vision change reported. Lumi checks blood flow before guessing.":"No headache or vision change.",
-      neck: zones.neck==="alert"?"Suspected clot on today’s scan. NASA treatment protocol started.":zones.neck==="watch"?"Signs worth a neck scan (NASA OCHMO-MTB-007).":"No warning signs. Next routine scan on flight day 60.",
-      heart: zones.heart==="alert"?"Chest pain or breathlessness. Medical officer called now.":zones.heart==="watch"?"Palpitations. Wearable recording sent for review.":"Heart rate and oxygen at baseline (simulated)."
+      neck: zones.neck==="alert"?"Suspected clot on today’s scan. NASA treatment protocol started.":zones.neck==="watch"?(S.scan.result==="stagnant"?"Stagnant flow on today’s scan. No apixaban (no risk factors): hydration and more frequent scans (OCHMO-MTB-007).":"Signs worth a neck scan (NASA OCHMO-MTB-007)."):`No warning signs. Next routine scan on flight day ${V.screening.next??"—"}.`,
+      heart: zones.heart==="alert"?"Chest pain or breathlessness. Medical officer called now.":zones.heart==="watch"?"Palpitations. Wearable recording sent for review.":`Heart rate ${V.tiles.find(t=>t.key==="heartRateBpm").value} bpm, pressure ${V.tiles.find(t=>t.key==="systolicMmHg").value} mmHg: inside the ISS in-flight range (simulated).`
     };
     paintZones();
     const zi=$("zoneInfo"); zi.className="zone-info"; zi.innerHTML=`<h3>Scan updated</h3><p>Tap a glowing area to see why.</p>`;
 
     document.body.classList.remove("sev2","sev3"); if (R.severity>=2) document.body.classList.add("sev"+R.severity);
+    lastSeverity = R.severity; applyClinicalState();
   }
 
   function crewCards(R){
@@ -685,30 +1235,111 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
   }
 
   /* ---------- daily missions (A) ---------- */
-  const ICON = {"T-SYM":"🩺","T-H2O":"💧","T-H2O-PLUS":"💧","T-EX":"🏃","T-EX-HI":"⚡","T-EX-AERO":"🚴","T-SCAN":"📡","T-TREAT":"🩺","T-VIS":"👁","T-BLOOD":"🩸","T-LAND":"🪂","T-GOOD":"☀️"};
-  let M = [];
+    let M = [];
   const goalTarget = t => t.goal.type==="check" ? 1 : t.goal.target;
   function missionSub(t){
     if (t.goal.type==="count") return `${t.progress} of ${t.goal.target} ${t.goal.unit}`;
     if (t.goal.type==="minutes") return t.done ? `${t.goal.target} min logged` : `${t.progress} of ${t.goal.target} min · syncs from wearable`;
     return t.done ? (t.auto==="checkin" ? "Done with this check-in" : "Done") : "Tap when done";
   }
+  // Status ring: empty circle → arc for partial progress → filled circle with a check when done.
+  const RING_C = 2*Math.PI*10;
+  const ringPct = t => t.done ? 1 : Math.min(1, t.progress/goalTarget(t));
+  function ringSVG(t){
+    return `<svg class="ring2" viewBox="0 0 24 24" aria-hidden="true"><circle class="rt" cx="12" cy="12" r="10"/>
+      <circle class="ra" cx="12" cy="12" r="10" transform="rotate(-90 12 12)" stroke-dasharray="${RING_C.toFixed(2)}" stroke-dashoffset="${(RING_C*(1-ringPct(t))).toFixed(2)}"/>
+      <path class="rc" d="M7.5 12.3l3 3 6-6.4"/></svg>`;
+  }
   function missionCard(t,i){
     const btn = t.goal.type==="count" ? "+1" : "Done";
     return `<div class="mission ${t.done?"done":""}" data-i="${i}" style="animation-delay:${i*90}ms">
-      <div class="mi"><span>${ICON[t.id]||"◆"}</span></div>
+      <div class="mi">${ringSVG(t)}<span class="sr">${t.done?"Done":"Not done"}</span></div>
       <div><h4>${t.title}</h4><div class="sub">${missionSub(t)}</div></div>
       <button class="mbtn" data-i="${i}" aria-label="${btn}: ${t.title}">${btn}</button>
       ${t.goal.type!=="check"?`<div class="mbar"><i style="width:${Math.round(t.progress/goalTarget(t)*100)}%"></i></div>`:""}
       <details><summary>Why</summary>${t.why}${t.goal.demo?" The goal is a demo value.":""}</details>
     </div>`;
   }
-  function missionsHTML(plan){
+  const CLINICAL = t => t.id!=="T-GOOD";
+  function missionsHTML(plan, checkedIn=true){
     const prev = Object.fromEntries(M.map(t=>[t.id,t]));
-    M = plan.tasks.map(t=>{ const p=prev[t.id]; if(p) return {...t, progress:p.progress, done:p.done};
-      const auto=t.auto==="checkin"; return {...t, progress:auto?goalTarget(t):0, done:auto}; });
-    const n = M.filter(t=>t.done).length;
-    return `<div class="missions ${n===M.length?"complete":""}" id="missions"><div class="m-head"><span>Today’s missions</span><span class="m-count" id="mCount">${n} of ${M.length}</span></div>${M.map(missionCard).join("")}<div class="m-done">All missions complete. +20 glow</div></div>`;
+    M = plan.tasks.map(t=>{ const auto=t.auto==="checkin";
+      if (auto) return {...t, progress:checkedIn?goalTarget(t):0, done:checkedIn};   // the symptom check is done by the check-in itself
+      const p=prev[t.id]; if(p) return {...t, progress:p.progress, done:p.done};
+      return {...t, progress:0, done:false}; });
+    // The list shows clinical follow-up only; the wellbeing task ("bank a good moment") stays in Lumi's conversation and voice commands.
+    const C = M.filter(CLINICAL), n = C.filter(t=>t.done).length;
+    return `<div class="missions ${n===C.length?"complete":""}" id="missions"><div class="m-head"><span>Clinical follow-up today</span><span class="m-count" id="mCount">${n} of ${C.length} done</span></div>${M.map((t,i)=>CLINICAL(t)?missionCard(t,i):"").join("")}<div class="m-done">All follow-up done for today.</div></div>`;
+  }
+  /* Right-hand "Today" column: what happens next (and who is told), then today's missions. */
+  /* "What happens next": the top card of the Today column. Its state (and colour) comes from clinicalState();
+     the steps are the agent's actions for others (who is told), numbered in the agent's order. */
+  const STATE_LABEL = { emer:"Emergency", alert:"Alert", prev:"Follow-up", ok:"Stable" };
+  function nextCard(R){
+    if (!R) return `<section class="next-card" data-st="wait" aria-labelledby="ncT">
+        <div class="nc-head"><span class="nc-pill">Waiting for check-in</span></div>
+        <h3 class="nc-title" id="ncT">Check in to see what happens next</h3>
+        <p class="nc-note">Lumi tells your crew only what they need to act.</p></section>`;
+    const st = clinicalState(R.severity, V.decision.status);
+    const steps = R.actions.filter(a=>a.who!=="crew"||a.level>=3);
+    const who = [...new Set(steps.map(a=>a.whoLabel.split(",")[0]))];
+    const urgent = R.severity>=2;
+    const hasCmo = steps.some(a=>a.who==="cmo");
+    // Each step opens to show why (the rule that fired), its evidence, and what applies to that role.
+    const body = a => {
+      const r = R.rules.find(x=>x.id===a.rule) || {};
+      let extra = "";
+      if (a.who==="cmo") extra += (r.id==="VT-1" ? `<button type="button" class="step-btn" data-act="protocol">Open the NASA protocol</button>` : "")
+                                 + `<button type="button" class="step-btn" data-act="nocmo">Medical officer not reachable</button>`;
+      if (a.who==="earth") extra += `<p class="step-p">Reaches Earth in about <b>${V.comms.oneWayText}</b>; a reply takes at least <b>${V.comms.roundTripText}</b>. Act locally in the meantime.</p>`;
+      if (a.who==="cmd") extra += `<div class="badges">${V.decision.flightRules.map(f=>`<span class="badge2 ${f.authorized?"":"no"}">${esc2(f.label)}: ${esc2(f.text)}</span>`).join("")}</div>`;
+      return `<div class="step-body">${r.why?`<p class="step-p"><b>Why.</b> ${r.why}</p>`:""}
+        ${r.evidenceLevel?`<p class="step-ev">${EV_LABEL[r.evidenceLevel]||r.evidenceLevel}${r.evidence?.length?" · "+r.evidence.join(" · "):""} · rule ${r.id}</p>`:""}
+        ${extra?`<div class="step-extra">${extra}</div>`:""}</div>`;
+    };
+    const step = (a,i) => `<details class="step ${i===0&&urgent?"primary":""}">
+        <summary><span class="n" aria-hidden="true">${i+1}</span><span class="step-txt">${i===0&&urgent?`<em>Do first</em>`:""}<b>${a.text}</b><small>${a.whoLabel}</small></span><span class="chev" aria-hidden="true">›</span></summary>${body(a)}</details>`;
+    return `<section class="next-card" data-st="${st}" aria-labelledby="ncT">
+        <div class="nc-head"><span class="nc-pill">${STATE_LABEL[st]}</span><span class="nc-who">${who.length ? "Told: "+who.join(" · ") : "Nobody else is told"}</span></div>
+        <h3 class="nc-title" id="ncT">${R.meaning}</h3>
+        ${steps.length ? `<div class="nc-steps2">${steps.map(step).join("")}</div>` : ""}
+        ${urgent ? `<div class="nc-actions">
+            <button type="button" class="nc-btn main" data-act="talk"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Tell Lumi what’s happening</button>
+            ${hasCmo?`<button type="button" class="nc-btn" data-act="nocmo">Medical officer not reachable</button>`:""}
+          </div>` : ""}
+      </section>`;
+  }
+  /* Situation buttons. Routing only: no new clinical content, no doses (those stay in the OCHMO panel). */
+  function nextAction(act){
+    if (act==="protocol"){ setDrawer(true); setTimeout(()=>$("ochmo").scrollIntoView({block:"start",behavior:reduce?"auto":"smooth"}), 320); return; }
+    tab("sToday");
+    if (act==="nocmo"){
+      const msg = `If your medical officer can’t be reached, I’ll tell the commander now and send a priority request to Earth flight surgeons. It reaches them in about ${V.comms.oneWayText}; a reply takes at least ${V.comms.roundTripText}.`;
+      render(tx(msg, "Don’t start any medicine on your own: wait for your medical officer or Earth’s instruction. If you get chest pain or trouble breathing, say it out loud. Demo routing, pending clinician review.", lastSeverity>=3?"red":"amber"));
+      mood("alert"); speak(msg); return;
+    }
+    if (act==="talk"){
+      render(tx("Tell me what’s happening. I’ll check it against the protocol.", "Speak or type below. Say “chest pain” or “trouble breathing” straight away if that happens."));
+      speak("Tell me what's happening.");
+      const m=$("mic"), l=$("listenBtn");
+      if (m && !m.hidden) m.click(); else if (l && !l.hidden && l.getAttribute("aria-pressed")!=="true") l.click(); else $("sayInput").focus();
+    }
+  }
+  function setToday(R, plan, checkedIn=true){
+    const st = checkedIn && R ? clinicalState(R.severity, V.decision.status) : "wait";
+    const ms = plan ? missionsHTML(plan, checkedIn) : "";
+    // In an emergency the daily follow-up steps back: folded and dimmed, one line.
+    const n = M.filter(CLINICAL).length;
+    $("today").innerHTML = nextCard(checkedIn ? R : null) +
+      (st==="emer" && ms ? `<details class="paused"><summary>Daily follow-up paused during the emergency · ${n} task${n===1?"":"s"}</summary>${ms}</details>` : ms);
+    $("today").classList.remove("has-open");
+    wireMissions();
+    const steps = [...$("today").querySelectorAll("details.step")];
+    steps.forEach(d=>d.addEventListener("toggle", ()=>{
+      if (d.open) steps.forEach(o=>{ if(o!==d) o.open=false; });
+      $("today").classList.toggle("has-open", steps.some(o=>o.open));
+    }));
+    $("today").querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>nextAction(b.dataset.act));
   }
   function wireMissions(){ document.querySelectorAll("#missions .mbtn").forEach(b=>b.onclick=()=>advance(+b.dataset.i)); }
   function advance(i){
@@ -717,9 +1348,10 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
     if (t.progress>=goalTarget(t)){ t.done=true; addGlow(5); mood("happy"); }
     const card=document.querySelector(`#missions .mission[data-i="${i}"]`);
     if (card){ card.classList.toggle("done",t.done); card.querySelector(".sub").textContent=missionSub(t);
+      card.querySelector(".mi").innerHTML = ringSVG(t)+`<span class="sr">${t.done?"Done":"Not done"}</span>`;
       const bar=card.querySelector(".mbar i"); if(bar) bar.style.width=Math.round(t.progress/goalTarget(t)*100)+"%"; }
-    const n=M.filter(x=>x.done).length; const mc=$("mCount"); if(mc) mc.textContent=`${n} of ${M.length}`;
-    const box=$("missions"); if(n===M.length && box && !box.classList.contains("complete")){ box.classList.add("complete"); addGlow(20); }
+    const C=M.filter(CLINICAL), n=C.filter(x=>x.done).length; const mc=$("mCount"); if(mc) mc.textContent=`${n} of ${C.length} done`;
+    const box=$("missions"); if(n===C.length && box && !box.classList.contains("complete")){ box.classList.add("complete"); addGlow(20); }
     return t;
   }
   function addGlow(n){ glow=Math.min(100,glow+n); $("ring").style.setProperty("--p",glow); $("sGlow").textContent=3+Math.floor((glow-40)/45); xp(n); }
@@ -766,7 +1398,8 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
   }
   function tlCaption(){
     const tl=lastPlan.timeline;
-    $("tlCap").innerHTML = `<span>Flight day <b>${tl.today}</b> of ${tl.length}</span>` + (tl.next?`<span>Next: <b>${tl.next.label}</b> in ${tl.daysToNext} day${tl.daysToNext===1?"":"s"}</span>`:`<span><b>Landing day</b></span>`);
+    $("tlCap").innerHTML = `<span>Day <b class="big">${tl.today}</b> of ${tl.length} in space</span>` +
+      (tl.next?`<span>Next: <b>${tl.next.label}</b> · day ${tl.next.day} (in ${tl.daysToNext} day${tl.daysToNext===1?"":"s"})</span>`:`<span><b>Landing day</b></span>`);
   }
   const nextLine = plan => plan.timeline.next ? `Flight day ${plan.timeline.today}. Next up: ${plan.timeline.next.label.toLowerCase()} in ${plan.timeline.daysToNext} day${plan.timeline.daysToNext===1?"":"s"}.` : "";
 
@@ -781,17 +1414,20 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
       renderTimeline(plan);
       showAssessment(R);
       setRest(R.severity===3?"alert":R.severity===2?"concerned":"happy");
-      lumiSay(R.severity===3?"I’m right here.":R.severity===2?"Let’s take a look.":"All good, Rin!");
+      lumiSay(R.severity===3?"I’m right here.":R.severity===2?"Let’s take a look.":`All good, ${CREW.firstName}!`);
       if (!opts.noReward){ checkins++; $("sCheck").textContent=checkins; addGlow(15); }
       const tone = R.severity===3?"red":R.severity===2?"amber":"";
       const fired = new Set(R.rules.map(r=>r.id));
       let extra = "";
       if (fired.has("BH-1")) extra += ` <button class="go alt" id="sendEarth">Send private note to Earth</button>`;
-      extra += ` <button class="go alt" data-goto="sBody">Open body scan</button>`;
-      append(tx(R.message, R.severity===3?"If anything changes, like chest pain or trouble breathing, say it out loud and Lumi calls Ines.":"", tone) + crewCards(R) + missionsHTML(plan) + `<div>${extra}</div>`);
-      wireMissions();
+      // One Lumi message per step: a scenario opener is folded into the verdict instead of stacking two bubbles.
+      const opener = opts.opener || "";
+      const msg = (opener ? opener+" " : "") + R.message;
+      const sub = R.severity===3 ? "If anything changes, like chest pain or trouble breathing, say it out loud and Lumi calls Ines." : "";
+      (opener ? render : append)(tx(msg, sub, tone) + (extra ? `<div>${extra}</div>` : ""));
+      setToday(R, plan, true);
       flow.querySelectorAll("[data-goto]").forEach(b=>b.onclick=()=>tab(b.dataset.goto));
-      const se=$("sendEarth"); if(se) se.onclick=()=>{ se.textContent="Sent. Reply in about 40 min"; se.disabled=true; };
+      const se=$("sendEarth"); if(se) se.onclick=()=>{ se.textContent=`Sent. Reply in about ${Math.ceil(V.comms.roundTripSec/60)} min (round trip)`; se.disabled=true; };
       const open = M.filter(t=>!t.done).map(t=>t.title.split(":")[0].toLowerCase());
       const ack = pendingAck ? pendingAck+" " : ""; pendingAck="";
       speak(ack + R.message + (open.length ? ` Today's missions: ${open.join(", ")}.` : ""));
@@ -815,14 +1451,14 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
   const prog=n=>`<div class="prog">${[0,1,2].map(i=>`<i class="${i<=n?"on":""}"></i>`).join("")}</div>`;
   function startFree(){
     S = freshState(); $("dDay").textContent=S.day; resetPanel(); setRest(""); mood("happy"); M=[];
-    const plan = agent.planDay(toSignals(S)); renderTimeline(plan);
-    render(tx("Morning, Rin. How did you sleep?", `${nextLine(plan)} Your band logged 5 h 12 min, about two hours under your usual.`) +
-      `<div class="chips row">${chip("sleep","rough","Rough",1,"😴")}${chip("sleep","ok","Okay",2,"🙂")}${chip("sleep","great","Great",3,"✨")}</div>` + prog(0));
-    bindSingle(v=>{ if(v==="rough"){S.shortNights=1;} if(v==="great"){S.sleepH=7.4;} if(v==="ok"){S.sleepH=6.6;} }, q2);
-    ask("sleep", `Morning, Rin. ${nextLine(plan)} How did you sleep?`);
+    const plan = agent.planDay(toSignals(S)); renderTimeline(plan); setToday(null, plan, false);
+    render(tx(`Morning, ${CREW.firstName}. How did you sleep?`, `${nextLine(plan)} Your band logged ${Math.floor(S.sleepH)} h ${String(Math.round(S.sleepH%1*60)).padStart(2,"0")} min (ISS crews average ${BASE_SLEEP} h).`) +
+      `<div class="chips row">${chip("sleep","rough","Rough",1)}${chip("sleep","ok","Okay",2)}${chip("sleep","great","Great",3)}</div>` + prog(0));
+    bindSingle(v=>{ if(v==="rough"){S.shortNights=1;} }, q2);  // self-report only; measured sleep stays the stream's
+    ask("sleep", `Morning, ${CREW.firstName}. ${nextLine(plan)} How did you sleep?`);
   }
   function q2(){
-    render(tx("And how are you feeling right now?") + `<div class="chips row">${chip("m","low","Low",1,"🌧")}${chip("m","meh","So-so",2,"⛅")}${chip("m","good","Good",3,"☀️")}</div>` + prog(1));
+    render(tx("And how are you feeling right now?") + `<div class="chips row">${chip("m","low","Low",1)}${chip("m","meh","So-so",2)}${chip("m","good","Good",3)}</div>` + prog(1));
     bindSingle(v=>{ S.mood=v; }, q3);
     ask("mood", "And how are you feeling right now?");
   }
@@ -854,6 +1490,7 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
     $("checked").textContent=""; $("rules").innerHTML=""; $("acts").innerHTML="";
     $("pb").innerHTML = ALL_RULES.map(r=>`<li><b>${r.id}</b><span>${r.title}</span></li>`).join("");
     document.body.classList.remove("sev2","sev3");
+    lastSeverity = null; applyClinicalState();
   }
 
   /* ---------- scenarios ---------- */
@@ -862,13 +1499,17 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
     tab("sToday"); keys(null); window.speechSynthesis?.cancel();
     if (k==="free"){ startFree(); return; }
     loadScenario(k); resetPanel(); setRest(""); M=[]; renderTimeline(agent.planDay(toSignals(S)));
-    render(tx(SCENARIOS[k].opener, k==="red"?"":"Cross-checking mind and body against your baseline."));
-    runAgent();
+    $("today").innerHTML = `<p class="t-empty">Checking the playbook…</p>`;
+    const opener = SCENARIOS[k].opener();
+    render(tx(opener, k==="EMERGENCY_THROMBOSIS"?"":"Cross-checking the stream against NASA OCHMO-MTB-007."));
+    runAgent({opener});
   }
   /* ---------- other prototypes (HTML pages in /prototypes) ----------
      To add one: drop the file in prototypes/ and add a line here. */
   const PROTOTYPES = [
-    { id:"watch", label:"Smartwatch", file:"prototypes/watch.html", caption:"<b>Smartwatch companion</b> wrist view with its own Normal, Stress and Alert states" }
+    { id:"lumiwatch", label:"Lumi watch", file:"prototypes/watch-lumi.html", caption:"<b>Lumi watch</b> VesselWatch on the wrist: same engine stream, playbook and Lumi, one thing per screen (open <a href='prototypes/watch-lumi.html' style='color:inherit'>full page</a>)" },
+    { id:"watch", label:"Smartwatch", file:"prototypes/watch.html", caption:"<b>Smartwatch companion</b> wrist view with its own Normal, Stress and Alert states" },
+    { id:"calm", label:"Calm version", file:"calm.html", caption:"<b>Calm version</b> the same engine and playbook in the Inner Ground Control visual system (open <a href='calm.html' style='color:inherit'>full page</a>)" }
   ];
   $("protoBtns").innerHTML = PROTOTYPES.map(p=>`<button class="scn proto" data-proto="${p.id}" aria-pressed="false"><i></i>${p.label}</button>`).join("");
   function showPrototype(id){
@@ -880,10 +1521,26 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
     $("protoView").hidden=false; document.querySelector(".stage").hidden=true;
   }
   function hidePrototype(){ $("protoView").hidden=true; document.querySelector(".stage").hidden=false; }
+  $("protoBack").onclick=()=>{ hidePrototype(); document.querySelectorAll(".scn.proto").forEach(b=>b.setAttribute("aria-pressed","false")); };
   document.querySelectorAll(".scn").forEach(b=>b.onclick=()=>{
     if (b.dataset.proto){ showPrototype(b.dataset.proto); return; }
     hidePrototype(); voiceFlow=false; awaiting=null; runScenario(b.dataset.s);
   });
+
+  /* ---------- "How Lumi decides" drawer (behind the app, on demand) ---------- */
+  document.body.append($("drawer"));   // out of .stage's stacking context, above the scrim and top bar
+  function setDrawer(open){
+    const d=$("drawer"); d.classList.toggle("open",open); d.inert=!open; $("scrim").hidden=!open;
+    [document.querySelector(".stage"), document.querySelector(".top"), $("dock")].forEach(el=>{ if(el) el.inert=open; });
+    $("agentBtn").setAttribute("aria-expanded",open);
+    if (open) $("drawerTitle").focus({preventScroll:true}); else $("agentBtn").focus({preventScroll:true});
+  }
+  $("agentBtn").onclick=()=>setDrawer(!$("drawer").classList.contains("open"));
+  $("drawerX").onclick=()=>setDrawer(false);
+  $("scrim").onclick=()=>setDrawer(false);
+  addEventListener("keydown",e=>{ if(e.key==="Escape" && $("drawer").classList.contains("open")) setDrawer(false); });
+
+  $("dockMin").onclick=()=>{ const d=$("dock"), min=d.classList.toggle("min"); $("dockMin").textContent=min?"Show":"Hide"; $("dockMin").setAttribute("aria-expanded",!min); };
 
   /* ---------- talking to Lumi ---------- */
   function parseSpeech(t){
@@ -897,13 +1554,12 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
   function freeForm(text){
     if (!S) S=freshState();
     keys(null);
-    if (!flow.innerHTML.trim()) render("");
-    append(tx(text,"","you","You"));
+    render(tx(text,"","you","You"));   // each free-form message starts a new turn: one exchange on screen at a time
     const cmd = missionCommand(text);
-    if (cmd){ append(tx(cmd,"","","Lumi logged")); speak(cmd); return; }
+    if (cmd){ append(tx(cmd,"","sys","Lumi logged")); speak(cmd); return; }
     // Anything that isn't a command or a mission goes to the medical agent.
     const found = parseSpeech(text);
-    append(tx(found.length ? "Heard: " + found.join(", ") + "." : "No new symptoms in that. Checking where you stand…", "", "", "Medical agent"));
+    append(tx(found.length ? "Heard: " + found.join(", ") + "." : "No new symptoms in that. Checking where you stand…", "", "sys", "Medical agent"));
     if (!found.length) pendingAck = "I didn’t spot a new symptom in that, so here’s where you stand.";
     runAgent({fast:true, noReward: !found.length});
   }
@@ -1034,7 +1690,7 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
   function startBodyScan(){
     hidePrototype(); endFlow(); voiceFlow=true;
     document.querySelectorAll(".scn").forEach(b=>b.setAttribute("aria-pressed", b.dataset.s==="free"));
-    S=freshState(); S.sleepH=BASE_SLEEP; $("dDay").textContent=S.day; resetPanel(); setRest(""); M=[]; keys(null);
+    S=freshState(); $("dDay").textContent=S.day; resetPanel(); setRest(""); M=[]; keys(null);
     renderTimeline(agent.planDay(toSignals(S)));
     render(tx("Body scan in progress.","Answer each question out loud. Lumi colors the map as you go."));
     tab("sBody"); bodyStep=0; pendingAck="Starting your body scan."; askBody();
@@ -1133,7 +1789,7 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
     listenRecog.onerror = e=>{
       if (e.error==="not-allowed"||e.error==="service-not-allowed"){
         preferBrowser=false; setListenUI(false);
-        if (dict){ lumiSay("Tap 👂 again to use claude.ai dictation."); listenBtn.hidden=false; } else listenBtn.hidden=true;
+        if (dict){ lumiSay("Tap the listening button again to use claude.ai dictation."); listenBtn.hidden=false; } else listenBtn.hidden=true;
       }
     };
     mic.hidden=false; listenBtn.hidden=false;

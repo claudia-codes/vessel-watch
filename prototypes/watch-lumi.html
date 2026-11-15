@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VesselWatch · Lumi on the wrist</title>
+<!--
+  VesselWatch on a smartwatch: the same HemoMind engine stream, the same medical-agent playbook
+  and the same Lumi, reduced to what fits on a wrist. One thing per screen.
+  Physiological values come only from engine/hemomind-core.js (simulated inside published ISS ranges).
+  No drug doses on the watch: doses stay in the OCHMO-MTB-007 panel of the main app.
+  Educational prototype. Not a medical device.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#08121c; --panel:#0e1d2b; --panel2:#132638; --line:#23415a;
+  --text:#d8e7ef; --muted:#87a1b1; --cyan:#62d6ea; --amber:#f0a63a; --crimson:#ff5a72; --ok:#5fcf8e;
+  --holo1:#bff6ff; --holo2:#62d6ea; --holo3:#2a7fd4;
+  --display:"Chakra Petch","Segoe UI",system-ui,sans-serif;
+  --body:"Barlow","Segoe UI",system-ui,sans-serif;
+  --D:max(280px, min(380px, 88vw, calc(100svh - 300px)));
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:400 16px/1.4 var(--body);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:16px;
+  background-image:radial-gradient(ellipse at 50% 40%, color-mix(in srgb,var(--cyan) 10%,transparent), transparent 60%)}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- the watch ---------- */
+.watch{position:relative;margin:40px 0 36px;width:calc(var(--D) + 34px);height:calc(var(--D) + 34px);display:grid;place-items:center}
+.strap{position:absolute;left:50%;width:58%;height:60px;transform:translateX(-50%);background:linear-gradient(90deg,#0a1520,#132433 50%,#0a1520);border:1px solid #1b3043;z-index:0}
+.strap.top{top:-46px;border-radius:14px 14px 4px 4px}.strap.bot{bottom:-46px;border-radius:4px 4px 14px 14px}
+.bezel{position:relative;z-index:1;width:100%;height:100%;border-radius:50%;padding:17px;
+  background:conic-gradient(from 210deg,#2a3f52,#0d1823 25%,#31495e 50%,#0d1823 75%,#2a3f52);box-shadow:0 30px 70px #000a, inset 0 0 0 1px #3b5568}
+.crown{position:absolute;z-index:0;right:-9px;top:50%;width:16px;height:46px;transform:translateY(-50%);border-radius:5px;border:1px solid #3b5568;
+  background:repeating-linear-gradient(0deg,#2a3f52 0 3px,#162533 3px 6px)}
+.crown:hover{filter:brightness(1.3)}
+.screen{font-size:calc(var(--D) / 380 * 16px);position:relative;width:var(--D);height:var(--D);border-radius:50%;overflow:hidden;background:#02070c;box-shadow:inset 0 0 0 1px #0f2232}
+.screen::after{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;background:radial-gradient(circle at 30% 20%,#ffffff10,transparent 40%)}
+
+/* status ring around the screen edge (category, not a score) */
+.edge{position:absolute;inset:4px;border-radius:50%;pointer-events:none;border:3px solid var(--ok);opacity:.55;transition:border-color .5s}
+body[data-st="YELLOW"] .edge{border-color:var(--amber);opacity:.8}
+body[data-st="RED"] .edge{border-color:var(--crimson);opacity:.95}
+
+/* pages */
+.track{display:flex;height:100%;transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+.page{flex:0 0 100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14% 15%;gap:6px}
+.kick{font-family:var(--display);font-size:.72em;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.big{font-family:var(--display);font-weight:700;font-size:calc(var(--D) * .105);line-height:1.05}
+.word-ok{color:var(--ok)}.word-warn{color:var(--amber)}.word-red{color:var(--crimson)}
+.line{font-size:.92em;line-height:1.3}
+.muted{color:var(--muted)}
+.small{font-size:.74em;color:var(--muted);line-height:1.3}
+.hr{font-family:var(--display);font-weight:600;font-size:1.05em;display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+.hr i{width:9px;height:9px;border-radius:50%;background:var(--crimson);animation:beat 1s ease-in-out infinite}
+@keyframes beat{0%,100%{transform:scale(1)}20%{transform:scale(1.35)}}
+
+/* side arrows + dots */
+.nav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:30px;height:44px;border:0;background:none;color:var(--muted);font-size:1.3em;display:grid;place-items:center}
+.nav:hover{color:var(--text)} .nav.l{left:3%} .nav.r{right:3%}
+.nav[disabled]{visibility:hidden}
+.dots{position:absolute;bottom:6.5%;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:3}
+.dots button{width:7px;height:7px;padding:0;border-radius:50%;border:0;background:var(--line)}
+.dots button[aria-current="true"]{background:var(--cyan);width:16px;border-radius:4px}
+
+/* tap targets on the wrist */
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;margin-top:4px}
+.opts.two{grid-template-columns:1fr 1fr}
+.opt{min-height:3.25em;border-radius:16px;border:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-family:var(--display);font-weight:600;font-size:.8em;padding:4px}
+.opt .em{font-size:1.25em;line-height:1}
+.opt[aria-pressed="true"]{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 20%,var(--panel))}
+.pill{min-height:2.75em;padding:0 18px;border-radius:999px;border:0;background:var(--cyan);color:var(--bg);font-family:var(--display);font-weight:700}
+.pill.ghost{background:none;color:var(--text);border:1px solid var(--line)}
+.prog{display:flex;gap:4px;margin-top:2px}.prog i{width:16px;height:3px;background:var(--line);border-radius:2px}.prog i.on{background:var(--cyan)}
+
+/* vitals grid */
+.vit{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;width:100%}
+.vit div{display:flex;flex-direction:column;align-items:center}
+.vit b{font-family:var(--display);font-weight:600;font-size:1.35em;font-variant-numeric:tabular-nums;line-height:1.1}
+.vit b small{font-size:.62em;color:var(--muted);font-weight:500;margin-left:2px}
+.vit span{font-size:.68em;color:var(--muted)}
+.badges{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.badge{font-family:var(--display);font-weight:600;font-size:.7em;padding:2px 8px;border-radius:999px;border:1px solid var(--ok);color:var(--ok)}
+.badge.no{border-color:var(--crimson);background:var(--crimson);color:var(--bg)}
+.tag-sim{display:inline-block;font-size:.62em;font-weight:600;padding:0 6px;border:1px dashed var(--amber);color:var(--amber)}
+
+/* Lumi (same character and faces as the main app, smaller) */
+.lumi{width:calc(var(--D) * .36);height:calc(var(--D) * .36);overflow:visible;cursor:pointer}
+.lumi.concerned{--holo1:#ffe7bf;--holo2:#f0a63a;--holo3:#b86b1c}
+.lumi.alert{--holo1:#ffe0e6;--holo2:#ff7d92;--holo3:#b02a46}
+.lumi .bob{animation:float 4.5s ease-in-out infinite;transform-origin:100px 150px}
+.lumi.happy .bob{animation:bounce .7s ease 2}
+.lumi .earL{transform-origin:76px 72px;transition:transform .45s}.lumi .earR{transform-origin:124px 72px;transition:transform .45s}
+.lumi.concerned .earL{transform:rotate(-20deg)}.lumi.concerned .earR{transform:rotate(20deg)}
+.lumi.alert .earL{transform:rotate(-34deg) scaleY(.85)}.lumi.alert .earR{transform:rotate(34deg) scaleY(.85)}
+.lumi .tail{transform-origin:132px 158px;animation:wag 2.6s ease-in-out infinite}
+.lumi.concerned .tail{animation:none;transform:rotate(38deg)}.lumi.alert .tail{animation:none;transform:rotate(48deg)}
+.lumi .tip{animation:glow 2.4s ease-in-out infinite}
+.lumi .blink{animation:blink 5s infinite;transform-origin:100px 108px}
+.lumi .eyes-happy,.lumi .eyes-worried,.lumi .eyes-alert,.lumi .mouth-happy,.lumi .mouth-worried,.lumi .sweat,.lumi .blush{display:none}
+.lumi.happy .eyes-open,.lumi.concerned .eyes-open,.lumi.alert .eyes-open{display:none}
+.lumi.happy .eyes-happy,.lumi.happy .mouth-happy,.lumi.happy .blush{display:inline}
+.lumi.happy .mouth-neutral,.lumi.concerned .mouth-neutral,.lumi.alert .mouth-neutral{display:none}
+.lumi.concerned .eyes-worried,.lumi.alert .eyes-alert{display:inline}
+.lumi.concerned .mouth-worried,.lumi.alert .mouth-worried{display:inline}
+.lumi.concerned .sweat,.lumi.alert .sweat{display:inline}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes bounce{0%,100%{transform:translateY(0)}35%{transform:translateY(-12px)}70%{transform:translateY(0) scale(1.05,.95)}}
+@keyframes wag{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(12deg)}}
+@keyframes blink{0%,46%,50%,100%{transform:scaleY(1)}48%{transform:scaleY(.1)}}
+@keyframes glow{0%,100%{opacity:.5}50%{opacity:1}}
+
+/* outside the watch: demo controls (not part of the watch) */
+.demo{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;padding:6px 10px;border:1px dashed var(--amber);border-radius:999px;
+  background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--amber) 9%,transparent) 0 6px,transparent 6px 14px)}
+.demo b{font-family:var(--display);color:var(--amber);font-size:.8rem;margin:0 4px}
+.demo button{border:1px solid color-mix(in srgb,var(--amber) 55%,transparent);background:var(--bg);border-radius:999px;padding:5px 12px;font-family:var(--display);font-weight:600;font-size:.78rem;display:flex;align-items:center;gap:6px}
+.demo button i{width:8px;height:8px;border-radius:50%}
+.demo button[aria-pressed="true"]{background:var(--amber);color:var(--bg);border-color:var(--amber)}
+.foot{font-size:.72rem;color:var(--muted);text-align:center;max-width:460px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body data-st="GREEN">
+
+<div class="watch">
+  <div class="strap top"></div><div class="strap bot"></div>
+  <button class="crown" id="crown" aria-label="Crown: back to the watch face" title="Back to the watch face"></button>
+  <div class="bezel">
+    <div class="screen" role="application" aria-roledescription="smartwatch" aria-label="VesselWatch on the wrist">
+      <div class="edge" aria-hidden="true"></div>
+      <button class="nav l" id="prev" aria-label="Previous screen">‹</button>
+      <button class="nav r" id="next" aria-label="Next screen">›</button>
+      <div class="track" id="track">
+        <!-- 0 · face -->
+        <section class="page" aria-label="Watch face" id="pFace">
+          <div class="kick" id="fDay">Flight day —</div>
+          <svg class="lumi" id="lumi" viewBox="0 0 200 200" role="img" aria-label="Lumi"></svg>
+          <div class="big" id="fWord" aria-live="polite">—</div>
+          <div class="hr"><i aria-hidden="true"></i><span id="fHR">—</span><span class="muted" style="font-size:.75rem">bpm</span></div>
+        </section>
+        <!-- 1 · check-in -->
+        <section class="page" aria-label="Check-in" id="pCheck"></section>
+        <!-- 2 · vitals -->
+        <section class="page" aria-label="Vitals" id="pVitals">
+          <div class="kick">Vitals <span class="tag-sim">Simulated</span></div>
+          <div class="vit">
+            <div><b id="vHR">—<small>bpm</small></b><span>Heart rate</span></div>
+            <div><b id="vBP">—<small>mmHg</small></b><span>Blood pressure</span></div>
+            <div><b id="vHRV">—<small>ms</small></b><span>HRV</span></div>
+            <div><b id="vSleep">—<small>h</small></b><span>Sleep</span></div>
+          </div>
+          <div class="small" id="vCite">Inside published ISS in-flight ranges</div>
+        </section>
+        <!-- 3 · neck vein -->
+        <section class="page" aria-label="Neck vein" id="pNeck">
+          <div class="kick">Neck vein · today’s scan</div>
+          <div class="big" id="nFlow" style="font-size:calc(var(--D) * .075)">—</div>
+          <div class="line" id="nLine"></div>
+          <div class="badges" id="nRules"></div>
+          <div class="small">NASA OCHMO-MTB-007</div>
+        </section>
+        <!-- 4 · Earth -->
+        <section class="page" aria-label="Link to Earth" id="pEarth">
+          <div class="kick">Earth is</div>
+          <div class="big" id="eDelay" style="font-size:calc(var(--D) * .09)">—</div>
+          <div class="small">one way · round trip <span id="eRtt">—</span></div>
+          <div class="line" id="eQueue" style="margin-top:6px"></div>
+        </section>
+      </div>
+      <div class="dots" id="dots" role="tablist" aria-label="Screens"></div>
+    </div>
+  </div>
+</div>
+
+<div class="demo" role="group" aria-label="Demo controls, not part of the watch">
+  <b>🎬 Demo</b>
+  <button data-s="NOMINAL" aria-pressed="true"><i style="background:var(--ok)"></i>Nominal</button>
+  <button data-s="PRETHROMBOTIC" aria-pressed="false"><i style="background:var(--amber)"></i>Stasis</button>
+  <button data-s="EMERGENCY_THROMBOSIS" aria-pressed="false"><i style="background:var(--crimson)"></i>Clot</button>
+</div>
+<p class="foot">Same engine, playbook and Lumi as the VesselWatch app. Vitals are simulated inside published ISS in-flight ranges; the neck-vein decision is NASA OCHMO-MTB-007. Doses are shown only in the app’s OCHMO panel. Fictional crew member. Not a medical device.</p>
+
+<script src="../engine/hemomind-core.js"></script>
+<script type="module">
+import { createAgent, loadPlaybook } from "../agent/agent.js";
+const $ = id => document.getElementById(id);
+const HM = window.HemoMindCore;
+const playbook = await loadPlaybook("../agent/playbook.json");
+const agent = createAgent(playbook);
+const stream = HM.createMockStream({ initialState:"NOMINAL" });
+let V = HM.buildVesselView(stream.getSnapshot().packet);
+const MISSION_PLAN = { lengthDays:232, evaDay:54, exerciseMin7d:110 };   // simulated, same as the app
+
+/* ---------- Lumi (same drawing as the app) ---------- */
+const ink="#08121c", id="w";
+$("lumi").innerHTML = `<defs>
+  <radialGradient id="lg${id}" cx="40%" cy="28%" r="80%"><stop offset="0" stop-color="var(--holo1)"/><stop offset=".55" stop-color="var(--holo2)"/><stop offset="1" stop-color="var(--holo3)"/></radialGradient>
+  <pattern id="sl${id}" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="1.3" fill="rgba(8,18,28,.28)"/></pattern>
+  <filter id="gl${id}"><feGaussianBlur stdDeviation="7"/></filter></defs>
+  <g class="bob"><ellipse cx="100" cy="122" rx="74" ry="64" fill="var(--holo2)" opacity=".22" filter="url(#gl${id})"/>
+  <g class="tail"><path d="M132 160 C160 158 170 136 158 112" stroke="var(--holo2)" stroke-width="8" fill="none" stroke-linecap="round"/><circle class="tip" cx="158" cy="110" r="5.5" fill="var(--amber)"/></g>
+  <ellipse cx="100" cy="162" rx="36" ry="22" fill="url(#lg${id})"/><ellipse cx="100" cy="164" rx="16" ry="10" fill="${ink}" opacity=".55"/><circle cx="100" cy="164" r="4" fill="var(--holo1)" class="tip"/>
+  <ellipse cx="84" cy="182" rx="10" ry="6" fill="var(--holo2)"/><ellipse cx="116" cy="182" rx="10" ry="6" fill="var(--holo2)"/>
+  <g class="earL"><path d="M56 88 L58 34 L96 66 Z" fill="url(#lg${id})"/><path d="M64 78 L65 50 L84 66 Z" fill="#ff9fb3" opacity=".65"/></g>
+  <g class="earR"><path d="M144 88 L142 34 L104 66 Z" fill="url(#lg${id})"/><path d="M136 78 L135 50 L116 66 Z" fill="#ff9fb3" opacity=".65"/></g>
+  <rect x="44" y="60" width="112" height="88" rx="42" fill="url(#lg${id})"/><rect x="44" y="60" width="112" height="88" rx="42" fill="url(#sl${id})"/>
+  <rect x="58" y="84" width="84" height="44" rx="21" fill="${ink}" opacity=".88"/>
+  <g class="eyes-open"><g class="blink"><ellipse cx="82" cy="106" rx="8" ry="10" fill="var(--holo1)"/><ellipse cx="118" cy="106" rx="8" ry="10" fill="var(--holo1)"/></g></g>
+  <g class="eyes-happy" stroke="var(--holo1)" stroke-width="4.5" fill="none" stroke-linecap="round"><path d="M73 109 Q82 97 91 109"/><path d="M109 109 Q118 97 127 109"/></g>
+  <g class="eyes-worried"><ellipse cx="82" cy="109" rx="7" ry="8" fill="var(--holo1)"/><ellipse cx="118" cy="109" rx="7" ry="8" fill="var(--holo1)"/><path d="M71 97 L91 92 M129 97 L109 92" stroke="var(--holo1)" stroke-width="3.5" stroke-linecap="round"/></g>
+  <g class="eyes-alert"><circle cx="82" cy="106" r="10" fill="none" stroke="var(--holo1)" stroke-width="3"/><circle cx="118" cy="106" r="10" fill="none" stroke="var(--holo1)" stroke-width="3"/><circle cx="82" cy="106" r="3.2" fill="var(--holo1)"/><circle cx="118" cy="106" r="3.2" fill="var(--holo1)"/></g>
+  <ellipse class="blush" cx="66" cy="132" rx="8" ry="4.5" fill="#ff9fb3" opacity=".7"/><ellipse class="blush" cx="134" cy="132" rx="8" ry="4.5" fill="#ff9fb3" opacity=".7"/>
+  <path d="M96.5 132 L103.5 132 L100 136 Z" fill="#ff9fb3"/>
+  <path class="mouth-neutral" d="M92 138 Q96 142 100 138 Q104 142 108 138" stroke="${ink}" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+  <path class="mouth-happy" d="M89 137 Q94.5 145 100 138 Q105.5 145 111 137" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path class="mouth-worried" d="M92 142 Q100 135 108 142" stroke="${ink}" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+  <path class="sweat" d="M150 76 q6 9 0 13 q-6 -4 0 -13" fill="#bfefff"/></g>`;
+const lumi = $("lumi");
+function face(f){ lumi.classList.remove("happy","concerned","alert"); if (f){ void lumi.getBoundingClientRect(); lumi.classList.add(f); } }
+
+/* ---------- pages ---------- */
+const PAGES = ["Watch face","Check-in","Vitals","Neck vein","Earth"];
+let cur = 0;
+$("dots").innerHTML = PAGES.map((p,i)=>`<button role="tab" aria-label="${p}" data-i="${i}"></button>`).join("");
+function go(i){
+  cur = Math.max(0, Math.min(PAGES.length-1, i));
+  $("track").style.transform = `translateX(${-cur*100}%)`;
+  document.querySelectorAll("#dots button").forEach((b,k)=>b.setAttribute("aria-current", k===cur));
+  $("prev").disabled = cur===0; $("next").disabled = cur===PAGES.length-1;
+  document.querySelectorAll(".page").forEach((p,k)=>{ p.inert = k!==cur; });
+}
+$("prev").onclick=()=>go(cur-1); $("next").onclick=()=>go(cur+1); $("crown").onclick=()=>go(0);
+document.querySelectorAll("#dots button").forEach(b=>b.onclick=()=>go(+b.dataset.i));
+addEventListener("keydown", e=>{ if(e.key==="ArrowRight") go(cur+1); if(e.key==="ArrowLeft") go(cur-1); if(e.key==="Escape") go(0); });
+let x0=null; $("track").addEventListener("pointerdown",e=>{x0=e.clientX}); addEventListener("pointerup",e=>{ if(x0==null) return; const dx=e.clientX-x0; x0=null; if(Math.abs(dx)>40) go(cur+(dx<0?1:-1)); });
+
+/* ---------- live data from the engine ---------- */
+let lastAssess = null;          // the agent's last verdict after a check-in (null = no check-in yet)
+const STATUS_FACE = { GREEN:"", YELLOW:"concerned", RED:"alert" };
+function paint(v){
+  V = v;
+  const d = v.decision, t = Object.fromEntries(v.tiles.map(x=>[x.key,x]));
+  document.body.dataset.st = d.status;
+  $("fDay").textContent = `Flight day ${v.missionDay}`;
+  $("fHR").textContent = t.heartRateBpm.value;
+  // Face word: the agent's verdict once there is a check-in, otherwise the OCHMO neck-vein status.
+  const sev = lastAssess ? lastAssess.severity : (d.status==="RED"?3:d.status==="YELLOW"?2:0);
+  const W = sev>=3 ? ["Act now","word-red"] : sev===2 ? ["Watch","word-warn"] : ["All clear","word-ok"];
+  const fw=$("fWord"); if (fw.textContent!==W[0]){ fw.textContent=W[0]; fw.className="big "+W[1]; }
+  if (!lumi.matches(".happy")) face(sev>=3?"alert":sev===2?"concerned":"");
+  $("vHR").innerHTML = `${t.heartRateBpm.value}<small>bpm</small>`;
+  $("vBP").innerHTML = `${t.systolicMmHg.value}<small>mmHg</small>`;
+  $("vHRV").innerHTML = `${t.hrvRmssdMs.value}<small>ms</small>`;
+  $("vSleep").innerHTML = `${t.sleepHours.value}<small>h</small>`;
+  $("vCite").textContent = `Inside ISS in-flight ranges · ${t.heartRateBpm.cite.short}, ${t.hrvRmssdMs.cite.short}, ${t.sleepHours.cite.short}`;
+  $("nFlow").textContent = d.ijv.flow;
+  $("nFlow").className = "big " + (d.status==="RED"?"word-red":d.status==="YELLOW"?"word-warn":"word-ok");
+  $("nLine").textContent = d.status==="RED" ? "Clot. Treatment protocol with your medical officer."
+    : d.status==="YELLOW" ? "Slow, stagnant flow. More scans and extra water." : "No stasis, no clot.";
+  $("nRules").innerHTML = d.flightRules.map(r=>`<span class="badge ${r.authorized?"":"no"}">${r.id} ${r.authorized?"OK":"blocked"}</span>`).join("");
+  $("eDelay").textContent = v.comms.oneWayText; $("eRtt").textContent = v.comms.roundTripText;
+  const q = v.comms.queue[v.comms.queue.length-1];
+  $("eQueue").textContent = !q ? "Nothing queued for Houston." : q.status==="DELIVERED" ? "Medical report delivered to Houston."
+    : `Medical report ${q.status==="QUEUED"?"queued":"on its way"} · arrives in ${HM.formatDuration(Math.max(0,(q.etaEarthAt-Date.now())/1000))}`;
+}
+stream.subscribe(s=>paint(HM.buildVesselView(s.packet)));
+paint(V); stream.start();
+
+/* ---------- check-in on the wrist: 3 one-tap questions, then the playbook ---------- */
+let S;
+function fresh(){
+  const g = V.signals;
+  return { day:g.day, sleepH:g.sleepH, shortNights:0, mood:null, lowDays:0, sym:new Set(), scan:{...g.scan},
+    risk:{family:g.risk.family, thrombo:g.risk.thrombophilia, hormone:g.risk.hormone},
+    evaIn:MISSION_PLAN.evaDay-g.day, landingIn:MISSION_PLAN.lengthDays-g.day, exerciseMin7d:MISSION_PLAN.exerciseMin7d,
+    restingHR:g.restingHR, baselineHR:g.baselineHR, hrHighDays:0, anticoag:"none", baseSleep:+g.baselineSleepH.toFixed(1) };
+}
+const toSignals = s => ({...s, baselineSleepH:s.baseSleep, symptoms:[...s.sym], risk:{family:!!s.risk.family, thrombophilia:!!s.risk.thrombo, hormone:!!s.risk.hormone}});
+const prog = n => `<div class="prog" aria-hidden="true">${[0,1,2].map(i=>`<i class="${i<=n?"on":""}"></i>`).join("")}</div>`;
+function ask(title, opts, cls, pick, step){
+  $("pCheck").innerHTML = `<div class="kick">Check-in</div><div class="line" style="font-family:var(--display);font-weight:600;font-size:1.02rem">${title}</div>
+    <div class="opts ${cls||""}" role="group" aria-label="${title}">${opts.map(o=>`<button class="opt" data-v="${o[0]}" aria-pressed="false"><span class="em">${o[2]||""}</span>${o[1]}</button>`).join("")}</div>${prog(step)}`;
+  $("pCheck").querySelectorAll(".opt").forEach(b=>b.onclick=()=>{ b.setAttribute("aria-pressed","true"); setTimeout(()=>pick(b.dataset.v),250); });
+}
+function startCheck(){
+  S = fresh();
+  ask("How did you sleep?", [["rough","Rough","😴"],["ok","Okay","🙂"],["great","Great","✨"]], "", v=>{ if(v==="rough") S.shortNights=1;
+    ask("How do you feel?", [["low","Low","🌧"],["meh","So-so","⛅"],["good","Good","☀️"]], "", m=>{ S.mood=m;
+      ask("Anything new in your body?", [["none","Nothing new","✓"],["headache","Headache","🤕"],["puffy","Puffy face","😶"],["palp","Racing heart","💓"]], "two", s=>{
+        if (s!=="none") S.sym.add(s); finish(); }, 2); }, 1); }, 0);
+}
+function finish(){
+  const plan = agent.planDay(toSignals(S)), R = plan.assessment;
+  lastAssess = R; paint(V);
+  face(R.severity>=3?"alert":R.severity===2?"concerned":"happy");
+  if (R.severity<2) setTimeout(()=>face(""), 2200);
+  const told = R.actions.filter(a=>a.who!=="crew").map(a=>a.whoLabel);
+  const who = [...new Set(told)];
+  const W = R.severity>=3?"word-red":R.severity===2?"word-warn":"word-ok";
+  const word = R.severity>=3?"Act now":R.severity===2?"Watch":"All clear";
+  $("pCheck").innerHTML = `<div class="kick">Lumi says</div><div class="big ${W}" style="font-size:calc(var(--D) * .08)">${word}</div>
+    <div class="line">${short(R.message)}</div>
+    <div class="small">${who.length ? "Told: "+who.join(", ") : "Nobody else is told."}</div>
+    <button class="pill ghost" id="again" style="margin-top:4px">Check in again</button>`;
+  $("again").onclick = startCheck;
+}
+// Watch copy: first sentence only (the full message stays in the app).
+const short = m => { const s = String(m).split(/(?<=[.!?])\s/)[0]; return s.length>110 ? s.slice(0,107)+"…" : s; };
+
+/* ---------- demo states ---------- */
+document.querySelectorAll(".demo button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".demo button").forEach(x=>x.setAttribute("aria-pressed", x===b));
+  stream.setSimulationState(b.dataset.s); lastAssess=null;
+  paint(HM.buildVesselView(stream.getSnapshot().packet)); startCheck(); go(0);
+});
+
+startCheck(); go(0);
+window.__watch = { go, stream };
+</script>
+</body>
+</html>

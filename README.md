@@ -2,13 +2,14 @@
 
 An astronaut health companion for long missions, built for the NASA Space Apps Challenge. Lumi, a robot-cat companion, runs a short daily check-in or a voice-guided body scan. A transparent medical agent then decides what to do and who needs to know. It focuses on circulation and neck-vein clot risk in microgravity.
 
-**Decision support, not diagnosis.** All crew data in the demo is simulated. Clot rules follow NASA OCHMO-MTB-007 (2026); other thresholds are demo values pending clinician review. No drug doses are shown.
+**Decision support, not diagnosis.** All crew data in the demo is simulated inside published ISS in-flight ranges by the HemoMind engine. The clot decision is NASA OCHMO-MTB-007 (2026) as a pure function, including its apixaban regimen. Other thresholds are demo values pending clinician review.
 
 ## What's here
 
 | Path | What it is |
 |---|---|
 | `index.html` | The app: crew console with Lumi, mission timeline, daily missions, body scan, voice control, and the medical agent panel |
+| `engine/hemomind-core.js` | Generated HemoMind engine: telemetry stream and OCHMO-MTB-007 decision, the single source of truth (see `engine/README.md`) |
 | `agent/playbook.json` | All clinical knowledge: rules, daily missions, NASA schedule, evidence sources, speech lexicon |
 | `agent/agent.js` | The agent engine for browsers and Node |
 | `agent/agent.py` | The same engine in Python, for a FastAPI backend |
