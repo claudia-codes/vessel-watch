@@ -1,7 +1,7 @@
 {
   "meta": {
     "name": "VesselWatch flight medicine playbook",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "status": "draft - pending clinician review",
     "updated": "2026-11-14",
     "scope": "Decision support for astronaut circulation, heart and wellbeing self-checks on long missions. Not a diagnostic device.",
@@ -51,7 +51,10 @@
       "CVRISK": "NASA HRP Risk of Cardiovascular Adaptations Contributing to Adverse Mission Performance and Health Outcomes",
       "TB031": "NASA OCHMO-TB-031, Exercise overview",
       "OSD575": "NASA OSDR OSD-575, SpaceX Inspiration4 blood serum data: comprehensive metabolic panel, cardiovascular serum biomarkers and cytokine panels, 4 civilian crew, pre-flight and post-flight draws",
-      "ISSEX": "ISS crews schedule about 2 hours of exercise a day (resistive, treadmill and bike), per NASA exercise guidance"
+      "ISSEX": "ISS crews schedule about 2 hours of exercise a day (resistive, treadmill and bike), per NASA exercise guidance",
+      "STAHN2017": "Stahn et al., Scientific Reports 2017: resting core body temperature rose about 1 °C on long-duration ISS missions; during exercise some astronauts exceeded 40 °C (11 astronauts)",
+      "ISSKIT": "ISS medical kit (2023 packaging, third-party summary): paracetamol (acetaminophen), aspirin and ibuprofen in the over-the-counter kit",
+      "NSAIDAC": "Drug interaction references: ibuprofen and aspirin add bleeding risk with apixaban and other anticoagulants; paracetamol (acetaminophen) is usually preferred"
     },
     "datasets": [
       {
@@ -93,7 +96,9 @@
     "anticoagCoverageDays": "Days of anticoagulant on board for this crew member",
     "anticoagCourseDays": "Days still needed to finish the planned course",
     "labsOutOfRange": "Lab markers outside this person's own pre-flight range at a scheduled blood draw (list of marker names)",
-    "fired": "Set by planDay(): ids of rules that matched today, usable in maintenance conditions"
+    "fired": "Set by planDay(): ids of rules that matched today, usable in maintenance conditions",
+    "tempC": "Body temperature in °C (thermometer, wearable or spoken, e.g. 'my temperature is 38.6')",
+    "baselineTempC": "This person's usual resting temperature in flight, in °C. In space it runs about 1 °C above the Earth value"
   },
   "rules": [
     {
@@ -223,6 +228,76 @@
       "say": "Your scan shows a possible clot in a neck vein. You're stable, and there is a clear plan for this. Your medical officer will start the treatment protocol with you, and your spacewalk is on hold."
     },
     {
+      "id": "FV-2",
+      "severity": 3,
+      "evidenceLevel": "clinical-red-flag",
+      "sources": [
+        "STAHN2017"
+      ],
+      "title": "High fever, or fever with a stiff neck",
+      "when": {
+        "any": [
+          {
+            "gte": [
+              "tempC",
+              {
+                "path": "baselineTempC",
+                "add": 2.0
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "any": [
+                  {
+                    "has": [
+                      "symptoms",
+                      "fever"
+                    ]
+                  },
+                  {
+                    "gte": [
+                      "tempC",
+                      {
+                        "path": "baselineTempC",
+                        "add": 1.0
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "has": [
+                  "symptoms",
+                  "stiffNeck"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "why": "A very high temperature, or fever with a stiff neck, can mean a serious infection. In a closed habitat far from Earth, it needs the medical officer now.",
+      "actions": [
+        {
+          "text": "Medical officer comes to you now: temperature, heart rate, blood pressure, oxygen level",
+          "who": "cmo",
+          "level": 3
+        },
+        {
+          "text": "Priority call with Earth flight surgeons",
+          "who": "earth",
+          "level": 3
+        },
+        {
+          "text": "Rest in your crew quarters; crewmates keep close contact to a minimum",
+          "who": "crew",
+          "level": 3
+        }
+      ],
+      "say": "Your temperature is very high, so this needs your medical officer right now. Rest in your quarters. Ines is on her way, and Earth is being called."
+    },
+    {
       "id": "MED-1",
       "severity": 2,
       "evidenceLevel": "nasa-protocol",
@@ -265,6 +340,59 @@
       "say": "Your medicine supply is shorter than your planned course, so your flight surgeon is planning how to cover it."
     },
     {
+      "id": "MED-2",
+      "severity": 2,
+      "evidenceLevel": "peer-reviewed",
+      "sources": [
+        "NSAIDAC",
+        "ISSKIT"
+      ],
+      "title": "Fever while on an anticoagulant",
+      "when": {
+        "all": [
+          {
+            "any": [
+              {
+                "has": [
+                  "symptoms",
+                  "fever"
+                ]
+              },
+              {
+                "gte": [
+                  "tempC",
+                  {
+                    "path": "baselineTempC",
+                    "add": 1.0
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "neq": [
+              "anticoag",
+              "none"
+            ]
+          }
+        ]
+      },
+      "why": "Ibuprofen and aspirin, both in the ISS medical kit, add to the bleeding risk of anticoagulants. Paracetamol (acetaminophen) is usually the choice instead, but the flight surgeon decides.",
+      "actions": [
+        {
+          "text": "Avoid ibuprofen and aspirin while you're on your anticoagulant",
+          "who": "crew",
+          "level": 2
+        },
+        {
+          "text": "Medical officer confirms with the flight surgeon which fever medicine is safe",
+          "who": "cmo",
+          "level": 2
+        }
+      ],
+      "say": "One important thing: you're on blood thinners, so don't take ibuprofen or aspirin. Your medical officer will confirm with the flight surgeon what's safe for the fever."
+    },
+    {
       "id": "LD-2",
       "severity": 2,
       "evidenceLevel": "nasa-protocol",
@@ -302,6 +430,64 @@
         }
       ],
       "say": "Landing is close, so your medical officer will confirm when to pause your medicine, as NASA recommends."
+    },
+    {
+      "id": "FV-1",
+      "severity": 2,
+      "evidenceLevel": "demo-threshold",
+      "sources": [
+        "STAHN2017",
+        "ISSKIT"
+      ],
+      "title": "Fever or chills",
+      "when": {
+        "any": [
+          {
+            "has": [
+              "symptoms",
+              "fever"
+            ]
+          },
+          {
+            "gte": [
+              "tempC",
+              {
+                "path": "baselineTempC",
+                "add": 1.0
+              }
+            ]
+          }
+        ]
+      },
+      "why": "Fever can signal an infection, and in a closed habitat the whole crew shares the air and surfaces. In space your resting temperature already runs about 1 °C higher than on Earth, so Lumi compares with your own in-flight baseline, not the usual 38 °C. Fever also dries you out, and dehydration raises clot risk.",
+      "actions": [
+        {
+          "text": "Medical officer checks temperature, heart rate and oxygen level, and talks to the flight surgeon",
+          "who": "cmo",
+          "level": 2
+        },
+        {
+          "text": "Fever medicine from the medical kit only with your medical officer. Log your temperature first",
+          "who": "crew",
+          "level": 1
+        },
+        {
+          "text": "Rest: no intense exercise today. Your body heats up faster in space",
+          "who": "crew",
+          "level": 1
+        },
+        {
+          "text": "Drink extra fluids",
+          "who": "crew",
+          "level": 1
+        },
+        {
+          "text": "Wash hands often; no shared food, drinks or utensils until it settles",
+          "who": "crew",
+          "level": 1
+        }
+      ],
+      "say": "You've got a fever. Let's take it seriously, but calmly: rest today, drink plenty, and your medical officer will check your vitals. Don't take anything from the medical kit until you've talked to her."
     },
     {
       "id": "VT-2",
@@ -877,6 +1063,16 @@
         ]
       },
       {
+        "symptom": "stiffNeck",
+        "label": "Stiff neck",
+        "patterns": [
+          "stiff neck",
+          "neck (is |feels )?(really |so |very )?stiff",
+          "can'?t (bend|move|turn) my neck",
+          "can'?t touch my chin to my chest"
+        ]
+      },
+      {
         "symptom": "neck",
         "label": "Neck swelling or ache",
         "patterns": [
@@ -925,7 +1121,10 @@
           "can'?t see (anything|at all|out of)",
           "went (dark|black) in (one|my) eye",
           "can'?t find (my |the )?words",
-          "words (come|are coming) out wrong"
+          "words (come|are coming) out wrong",
+          "confus(ed|ion)",
+          "can'?t think straight",
+          "disoriented"
         ]
       },
       {
@@ -953,6 +1152,20 @@
         "patterns": [
           "(tired|exhausted|wiped out|out of breath).{0,25}(exercise|workout|treadmill|bike|training)",
           "(exercise|workout|treadmill|bike).{0,25}(harder|tired|exhausting)"
+        ]
+      },
+      {
+        "symptom": "fever",
+        "label": "Fever or chills",
+        "patterns": [
+          "fever(ish)?",
+          "(have|got|running|with) a (high |bit of a )?temperature",
+          "high temperature",
+          "chills",
+          "shivering",
+          "burning up",
+          "hot and cold",
+          "night sweats"
         ]
       }
     ],
@@ -999,8 +1212,21 @@
       "before": "\\b(no|not|never|without|none|nor|neither|zero|free of|no longer|deny|denies|absence of|cannot|dont|doesnt|didnt|isnt|wasnt|arent|werent|havent|hasnt|hadnt|cant|couldnt|wont|aint)\\b|\\b[a-z]+n't\\b",
       "beforeWords": 3,
       "inside": "\\b(not|no longer|never)\\b|\\b(is|was|are|were|does|did|do|has|have|had)n'?t\\b",
-      "after": "^\\W*([a-z']+\\W+){0,2}?(is |are |has |have |had |'s )?(gone|went away|passed|resolved|cleared up|stopped|disappeared|is over|'s over)\\b"
-    }
+      "after": "^\\W*([a-z']+\\W+){0,2}?(is |are |has |have |had |'s )?(gone|went away|passed|resolved|cleared up|stopped|disappeared|broke|has broken|is over|'s over)\\b"
+    },
+    "measures": [
+      {
+        "signal": "tempC",
+        "label": "Temperature",
+        "kind": "temperature",
+        "patterns": [
+          "(?:temp(?:erature)?|fever)\\s*(?:is|of|at|was|reads|reading|says)?\\s*(\\d{2,3}(?:[.,]\\d{1,2})?)\\s*(?:°\\s*|degrees?\\s*)?(c|f|celsius|fahrenheit)?\\b",
+          "(\\d{2,3}(?:[.,]\\d{1,2})?)\\s*(?:°\\s*|degrees?\\s*)?(c|f|celsius|fahrenheit)\\b",
+          "(\\d{2,3}(?:[.,]\\d{1,2})?)\\s*(?:°|degrees?)"
+        ],
+        "note": "Fahrenheit (unit f, or a value above 45) is converted to °C. Values outside 34–43.5 °C are ignored."
+      }
+    ]
   },
   "maintenance": {
     "note": "Daily missions are generated from today's signals and the rules that matched. Goals marked demo are placeholders for a clinician or the crew's own plan.",
@@ -1041,6 +1267,18 @@
                   "fired",
                   "VT-4"
                 ]
+              },
+              {
+                "has": [
+                  "fired",
+                  "FV-1"
+                ]
+              },
+              {
+                "has": [
+                  "fired",
+                  "FV-2"
+                ]
               }
             ]
           }
@@ -1072,10 +1310,22 @@
                 "fired",
                 "VT-4"
               ]
+            },
+            {
+              "has": [
+                "fired",
+                "FV-1"
+              ]
+            },
+            {
+              "has": [
+                "fired",
+                "FV-2"
+              ]
             }
           ]
         },
-        "why": "NASA's protocol adds hydration when neck-vein flow is stagnant.",
+        "why": "NASA's protocol adds hydration when neck-vein flow is stagnant, and fever dries you out.",
         "sources": [
           "MTB007"
         ]
@@ -1114,6 +1364,18 @@
                 "has": [
                   "fired",
                   "RF-2"
+                ]
+              },
+              {
+                "has": [
+                  "fired",
+                  "FV-1"
+                ]
+              },
+              {
+                "has": [
+                  "fired",
+                  "FV-2"
                 ]
               }
             ]
@@ -1162,6 +1424,18 @@
                       "fired",
                       "RF-2"
                     ]
+                  },
+                  {
+                    "has": [
+                      "fired",
+                      "FV-1"
+                    ]
+                  },
+                  {
+                    "has": [
+                      "fired",
+                      "FV-2"
+                    ]
                   }
                 ]
               }
@@ -1204,6 +1478,18 @@
                       "fired",
                       "RF-2"
                     ]
+                  },
+                  {
+                    "has": [
+                      "fired",
+                      "FV-1"
+                    ]
+                  },
+                  {
+                    "has": [
+                      "fired",
+                      "FV-2"
+                    ]
                   }
                 ]
               }
@@ -1213,6 +1499,62 @@
         "why": "With a clot, NASA restricts resistive exercise for at least 30 days. Bike and treadmill can be considered without harness shoulder straps.",
         "sources": [
           "MTB007"
+        ]
+      },
+      {
+        "id": "T-TEMP",
+        "title": "Temperature check, morning and evening",
+        "goal": {
+          "type": "count",
+          "target": 2,
+          "unit": "checks"
+        },
+        "when": {
+          "any": [
+            {
+              "has": [
+                "fired",
+                "FV-1"
+              ]
+            },
+            {
+              "has": [
+                "fired",
+                "FV-2"
+              ]
+            }
+          ]
+        },
+        "why": "Two readings a day show whether the fever is rising or settling. Take them before any fever medicine, which can hide it.",
+        "sources": [
+          "STAHN2017"
+        ]
+      },
+      {
+        "id": "T-REST",
+        "title": "Rest day: light movement only",
+        "goal": {
+          "type": "check"
+        },
+        "when": {
+          "any": [
+            {
+              "has": [
+                "fired",
+                "FV-1"
+              ]
+            },
+            {
+              "has": [
+                "fired",
+                "FV-2"
+              ]
+            }
+          ]
+        },
+        "why": "Exercise raises core temperature faster in space, and some astronauts passed 40 °C while exercising. With a fever, rest helps more than training.",
+        "sources": [
+          "STAHN2017"
         ]
       },
       {

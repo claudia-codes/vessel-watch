@@ -29,6 +29,10 @@ speech = [
     ("my chest hurts and I can't breathe", ["Chest pain", "Sudden breathlessness"]),
     ("worst headache of my life", ["Sudden severe headache"]),
     ("so tired on the treadmill lately", ["Tired on exertion"]),
+    ("I've got a fever and chills", ["Fever or chills"]),
+    ("my temperature is 38.6", ["Temperature 38.6 °C"]),
+    ("feverish, about 101 F", ["Fever or chills", "Temperature 38.3 °C"]),
+    ("I slept 7 hours", []),
 ]
 for text, want in speech:
     heard = agent.parse(text, {})["heard"]

@@ -288,5 +288,135 @@
         "T-BLOOD"
       ]
     }
+  },
+  {
+    "name": "Fever reported",
+    "signals": {
+      "sleepH": 7.0,
+      "mood": "good",
+      "scan": {
+        "day": 60,
+        "result": "reduced"
+      },
+      "evaIn": 20,
+      "landingIn": 160,
+      "exerciseMin7d": 110,
+      "day": 71,
+      "symptoms": [
+        "fever"
+      ]
+    },
+    "expect": {
+      "severity": 2,
+      "rules": [
+        "FV-1"
+      ],
+      "tasks": [
+        "T-SYM",
+        "T-H2O-PLUS",
+        "T-TEMP",
+        "T-REST"
+      ]
+    }
+  },
+  {
+    "name": "Fever while on an anticoagulant",
+    "signals": {
+      "sleepH": 7.0,
+      "mood": "good",
+      "scan": {
+        "day": 60,
+        "result": "antegrade"
+      },
+      "evaIn": 20,
+      "landingIn": 160,
+      "exerciseMin7d": 110,
+      "day": 63,
+      "symptoms": [
+        "fever"
+      ],
+      "tempC": 39.0,
+      "anticoag": "treatment"
+    },
+    "expect": {
+      "severity": 2,
+      "rules": [
+        "FV-1",
+        "MED-2"
+      ]
+    }
+  },
+  {
+    "name": "Fever with a stiff neck",
+    "signals": {
+      "sleepH": 7.0,
+      "mood": "good",
+      "scan": {
+        "day": 60,
+        "result": "reduced"
+      },
+      "evaIn": 20,
+      "landingIn": 160,
+      "exerciseMin7d": 110,
+      "day": 70,
+      "symptoms": [
+        "fever",
+        "stiffNeck"
+      ]
+    },
+    "expect": {
+      "severity": 3,
+      "rules": [
+        "FV-1",
+        "FV-2"
+      ]
+    }
+  },
+  {
+    "name": "Very high temperature reading",
+    "signals": {
+      "sleepH": 7.0,
+      "mood": "good",
+      "scan": {
+        "day": 60,
+        "result": "reduced"
+      },
+      "evaIn": 20,
+      "landingIn": 160,
+      "exerciseMin7d": 110,
+      "day": 70,
+      "symptoms": [],
+      "tempC": 40.0
+    },
+    "expect": {
+      "severity": 3,
+      "rules": [
+        "FV-1",
+        "FV-2"
+      ]
+    }
+  },
+  {
+    "name": "Space-normal temperature is not a fever",
+    "signals": {
+      "sleepH": 7.0,
+      "mood": "good",
+      "scan": {
+        "day": 60,
+        "result": "reduced"
+      },
+      "evaIn": 20,
+      "landingIn": 160,
+      "exerciseMin7d": 110,
+      "day": 70,
+      "symptoms": [],
+      "tempC": 38.3
+    },
+    "expect": {
+      "severity": 0,
+      "rules": [
+        "WB-0"
+      ]
+    }
   }
 ]

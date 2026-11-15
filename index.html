@@ -56,7 +56,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .demo-id span{font-size:.78rem;color:var(--muted)}
 .scn{background:var(--bg);border:1px solid color-mix(in srgb,var(--amber) 55%,transparent);color:var(--text);padding:.45rem .9rem;font-family:var(--display);font-weight:600;display:flex;align-items:center;gap:.5rem;border-radius:999px}
 .scn i{width:9px;height:9px;border-radius:50%}
-.scn[data-s="normal"] i{background:var(--ok)}.scn[data-s="investigate"] i{background:var(--amber)}.scn[data-s="red"] i{background:var(--crimson)}.scn[data-s="free"] i{background:var(--cyan)}
+.scn[data-s="normal"] i{background:var(--ok)}.scn[data-s="investigate"] i{background:var(--amber)}.scn[data-s="red"] i{background:var(--crimson)}.scn[data-s="free"] i{background:var(--cyan)}.scn[data-s="fever"] i{background:#ff9f5a}
 .scn[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:var(--bg)}
 .scn[aria-pressed="true"] i{box-shadow:0 0 0 2px var(--bg)}
 .scn:hover{border-color:var(--amber)}
@@ -354,6 +354,7 @@ body.listening .holo::after{content:"";position:absolute;width:210px;height:210p
   <button class="scn" data-s="normal" aria-pressed="false"><i></i>Normal day</button>
   <button class="scn" data-s="investigate" aria-pressed="false"><i></i>Needs a closer look</button>
   <button class="scn" data-s="red" aria-pressed="false"><i></i>Red alert</button>
+  <button class="scn" data-s="fever" aria-pressed="false"><i></i>Fever</button>
   <button class="scn" data-s="free" aria-pressed="true"><i></i>Live check-in</button>
   <span class="sep" aria-hidden="true"></span>
   <span class="grp">Other prototypes</span>
@@ -390,6 +391,7 @@ body.listening .holo::after{content:"";position:absolute;width:210px;height:210p
         <svg viewBox="0 0 220 300" width="230" height="300" aria-label="Body scan map">
           <circle class="silhouette" cx="110" cy="48" r="26"/>
           <path class="silhouette" d="M70 96 Q110 84 150 96 L160 192 Q110 202 60 192 Z"/>
+          <path class="zone" data-z="body" tabindex="0" d="M78 150 Q110 144 142 150 L148 188 Q110 196 72 188 Z" data-s="idle" opacity=".8"/>
           <path class="silhouette" d="M74 194 L94 194 L96 292 L76 292 Z M126 194 L146 194 L144 292 L124 292 Z"/>
           <path class="silhouette" d="M68 102 L44 182 L54 186 L78 110 Z M152 102 L176 182 L166 186 L142 110 Z"/>
           <circle class="zone" data-z="mind" tabindex="0" cx="110" cy="44" r="40" data-s="idle" opacity=".55"/>
@@ -400,6 +402,7 @@ body.listening .holo::after{content:"";position:absolute;width:210px;height:210p
           <text class="zlabel" x="146" y="54">Head, eyes</text>
           <text class="zlabel" x="126" y="86">Neck veins</text>
           <text class="zlabel" x="152" y="134">Heart, lungs</text>
+          <text class="zlabel" x="152" y="176">Whole body</text>
         </svg>
       </div>
       <div class="zone-info" id="zoneInfo"><h3>Scan not run yet</h3><p>Pick a scenario or finish today’s check-in.</p></div>
@@ -479,17 +482,19 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
      SCENARIOS (simulated data)
      ========================================================= */
   const SCENARIOS = {
-    normal:{day:32, sleepH:7.3, shortNights:0, mood:"good", lowDays:0, sym:[], scan:{day:30,result:"reduced"}, risk:{}, evaIn:12, landingIn:200, exerciseMin7d:125, restingHR:58, baselineHR:57, hrHighDays:0, anticoag:"none",
+    normal:{day:32, sleepH:7.3, shortNights:0, mood:"good", lowDays:0, sym:[], scan:{day:30,result:"reduced"}, risk:{}, evaIn:12, landingIn:200, exerciseMin7d:125, restingHR:58, baselineHR:57, hrHighDays:0, anticoag:"none", tempC:null, baselineTempC:37.8,
       opener:"Morning, Rin. Here’s today from your band and your check-in."},
-    investigate:{day:47, sleepH:5.2, shortNights:3, mood:"meh", lowDays:1, sym:["headache","puffy"], scan:{day:30,result:"reduced"}, risk:{}, evaIn:11, landingIn:185, exerciseMin7d:95, restingHR:62, baselineHR:57, hrHighDays:1, anticoag:"none",
+    investigate:{day:47, sleepH:5.2, shortNights:3, mood:"meh", lowDays:1, sym:["headache","puffy"], scan:{day:30,result:"reduced"}, risk:{}, evaIn:11, landingIn:185, exerciseMin7d:95, restingHR:62, baselineHR:57, hrHighDays:1, anticoag:"none", tempC:null, baselineTempC:37.8,
       opener:"Morning, Rin. Third short night in a row, and you mentioned a headache and a puffier face."},
-    red:{day:54, sleepH:6.6, shortNights:0, mood:"meh", lowDays:0, sym:["neck"], scan:{day:54,result:"thrombus"}, risk:{}, evaIn:4, landingIn:178, exerciseMin7d:110, restingHR:60, baselineHR:57, hrHighDays:0, anticoag:"none",
-      opener:"Rin, your follow-up neck scan from this morning just came back."}
+    red:{day:54, sleepH:6.6, shortNights:0, mood:"meh", lowDays:0, sym:["neck"], scan:{day:54,result:"thrombus"}, risk:{}, evaIn:4, landingIn:178, exerciseMin7d:110, restingHR:60, baselineHR:57, hrHighDays:0, anticoag:"none", tempC:null, baselineTempC:37.8,
+      opener:"Rin, your follow-up neck scan from this morning just came back."},
+    fever:{day:63, sleepH:6.1, shortNights:1, mood:"meh", lowDays:0, sym:["fever"], tempC:39.0, baselineTempC:37.8, scan:{day:60,result:"antegrade"}, risk:{}, evaIn:20, landingIn:169, exerciseMin7d:70, restingHR:68, baselineHR:57, hrHighDays:1, anticoag:"treatment",
+      opener:"Rin, your temperature this morning is 39.0 °C, more than a degree above your usual in space. You’re still on your clot treatment."}
   };
   const SCAN_LABEL = {reduced:"Antegrade, slow (common in flight)", stagnant:"Stagnant", thrombus:"Suspected clot", antegrade:"Antegrade", retrograde:"Retrograde"};
 
   let S;
-  function freshState(){ return {day:47, sleepH:5.2, shortNights:0, mood:null, lowDays:0, sym:new Set(), scan:{day:30,result:"reduced"}, risk:{}, evaIn:11, landingIn:185, exerciseMin7d:95, restingHR:59, baselineHR:57, hrHighDays:0, anticoag:"none"}; }
+  function freshState(){ return {day:47, sleepH:5.2, shortNights:0, mood:null, lowDays:0, sym:new Set(), scan:{day:30,result:"reduced"}, risk:{}, evaIn:11, landingIn:185, exerciseMin7d:95, restingHR:59, baselineHR:57, hrHighDays:0, anticoag:"none", tempC:null, baselineTempC:37.8}; }
   function loadScenario(k){ const d=SCENARIOS[k]; S={...d, sym:new Set(d.sym), scan:{...d.scan}, risk:{...d.risk}}; $("dDay").textContent=S.day; }
 
   /* =========================================================
@@ -645,10 +650,10 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
   }
 
   /* ---------- assessment display ---------- */
-  const zones = {mind:"idle", head:"idle", neck:"idle", heart:"idle"};
+  const zones = {mind:"idle", head:"idle", neck:"idle", heart:"idle", body:"idle"};
   let zoneText = {};
   function paintZones(){ document.querySelectorAll(".zone").forEach(z=>z.dataset.s = zones[z.dataset.z]); }
-  const ZTITLE={mind:"Mind and sleep",head:"Head and eyes",neck:"Neck veins",heart:"Heart and lungs"};
+  const ZTITLE={mind:"Mind and sleep",head:"Head and eyes",neck:"Neck veins",heart:"Heart and lungs",body:"Whole body"};
   function showZone(z){
     const titles=ZTITLE;
     const zi=$("zoneInfo"); zi.className="zone-info "+zones[z];
@@ -673,7 +678,8 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
       row("Landing", `In ${S.landingIn} days`, S.landingIn<=7?"flag":"") +
       row("Exercise", `${S.exerciseMin7d} min a day this week`, S.exerciseMin7d<60?"flag":"") +
       row("Resting heart rate", `${S.restingHR} bpm (usual ${S.baselineHR})${S.hrHighDays?` · high ${S.hrHighDays} day${S.hrHighDays>1?"s":""}`:""}`, S.hrHighDays>=3?"flag":"") +
-      row("Anticoagulant", S.anticoag==="none"?"None":S.anticoag, S.anticoag!=="none"?"flag":"");
+      row("Anticoagulant", S.anticoag==="none"?"None":S.anticoag, S.anticoag!=="none"?"flag":"") +
+      row("Temperature", S.tempC!=null ? `${S.tempC} °C (usual in flight ${S.baselineTempC} °C)` : `Not measured (usual in flight ${S.baselineTempC} °C)`, S.tempC!=null && S.tempC>=S.baselineTempC+2 ? "flag3" : S.tempC!=null && S.tempC>=S.baselineTempC+1 ? "flag" : "");
   }
 
   function showAssessment(R){
@@ -691,7 +697,11 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
     zones.head = lvl(syms.has("severeHead")||syms.has("neuro"), syms.has("headache")||syms.has("vision"));
     zones.neck = lvl(S.scan.result==="thrombus", syms.has("puffy")||syms.has("neck")||S.scan.result==="stagnant");
     zones.heart = lvl(syms.has("chest")||syms.has("breath"), syms.has("palp"));
+    const fired = new Set(R.rules.map(r=>r.id));
+    zones.body = lvl(fired.has("FV-2"), fired.has("FV-1"));
+    zones.neck = zones.neck==="ok" && syms.has("stiffNeck") ? "watch" : zones.neck;
     zoneText = {
+      body: zones.body==="alert"?"High fever, or fever with a stiff neck. Medical officer called now.":zones.body==="watch"?`Fever${S.tempC!=null?` (${S.tempC} °C)`:""}. Rest, extra fluids, and medicine only with your medical officer.`:"No fever reported.",
       mind: zones.mind==="ok"?"Sleep and mood look like your usual.":"Sleep or mood is off your baseline. Lumi offered support; it stays private.",
       head: zones.head==="alert"?"Red flag reported. Medical officer called.":zones.head==="watch"?"Headache or vision change reported. Lumi checks blood flow before guessing.":"No headache or vision change.",
       neck: zones.neck==="alert"?"Suspected clot on today’s scan. NASA treatment protocol started.":zones.neck==="watch"?"Signs worth a neck scan (NASA OCHMO-MTB-007).":"No warning signs. Next routine scan on flight day 60.",
@@ -852,13 +862,13 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
   }
   function q3(){
     render(tx("Anything feel different in your body?","Pick any, then send.") +
-      `<div class="chips">${chip("s","headache","Headache",1)}${chip("s","puffy","Puffier face than usual",2)}${chip("s","palp","Heart racing or skipping",3)}${chip("s","none","Nothing new",4)}</div><button class="go" id="q3go">Send to Lumi</button>` + prog(2));
+      `<div class="chips">${chip("s","headache","Headache",1)}${chip("s","puffy","Puffier face than usual",2)}${chip("s","palp","Heart racing or skipping",3)}${chip("s","fever","Fever or chills",4)}${chip("s","none","Nothing new",5)}</div><button class="go" id="q3go">Send to Lumi</button>` + prog(2));
     const tog=v=>{ if(v==="none"){S.sym.clear();S.sym.add("none"); react("none");} else {S.sym.delete("none"); S.sym.has(v)?S.sym.delete(v):(S.sym.add(v), react("sym"));}
       flow.querySelectorAll('.chip[data-k="s"]').forEach(c=>c.setAttribute("aria-pressed",S.sym.has(c.dataset.v))); };
     flow.querySelectorAll('.chip[data-k="s"]').forEach(b=>b.onclick=()=>tog(b.dataset.v));
     const done=()=>{ keys(null); S.sym.delete("none"); render(""); runAgent(); };
     $("q3go").onclick=done;
-    keys({"1":()=>tog("headache"),"2":()=>tog("puffy"),"3":()=>tog("palp"),"4":()=>tog("none"),"Enter":done});
+    keys({"1":()=>tog("headache"),"2":()=>tog("puffy"),"3":()=>tog("palp"),"4":()=>tog("fever"),"5":()=>tog("none"),"Enter":done});
     ask("sym", "Anything feel different in your body? Say nothing new if not.");
   }
   const REACT = {rough:["concerned","Oh no, short night…"], low:["concerned","I’m here for you."], ok:["","Okay, noted."], meh:["","Thanks for telling me."],
@@ -918,12 +928,13 @@ import { createAgent, loadPlaybook } from "./agent/agent.js";
      understood, so the crew member can correct it ("no, no chest pain"). */
   const SYM_ID = Object.fromEntries(playbook.lexicon.symptoms.map(e=>[e.label, e.symptom]));
   const ALL_SYM = playbook.lexicon.symptoms.map(e=>e.symptom);
-  const RED_SYM = ["chest","breath","severeHead","neuro"];
+  const RED_SYM = ["chest","breath","severeHead","neuro","stiffNeck"];   // kept if either reader hears them
   let aiSample=null, aiOn=true, lastQuestion="";
   const AI_DESC = {headache:"headache", severeHead:"sudden, severe or 'worst ever' headache", puffy:"face or eyes puffier than usual",
     neck:"neck swelling, pain or ache", chest:"chest pain, tightness or pressure", breath:"trouble breathing or breathless (not normal breathlessness right after exercise)",
     neuro:"weakness, numbness, drooping face, slurred speech, sudden vision loss, or can't find words", vision:"gradual or blurry vision change",
-    palp:"heart racing, pounding or skipping", exertionFatigue:"unusually tired during exercise"};
+    palp:"heart racing, pounding or skipping", exertionFatigue:"unusually tired during exercise",
+    fever:"fever, chills, shivering or feeling hot", stiffNeck:"stiff neck, can't bend the neck forward"};
   function aiPrompt(text, question){
     return `You turn an astronaut's own words into structured signals for a rule-based medical checklist. You do not diagnose or give advice.
 ${question ? `Lumi asked: "${question}"\n` : ""}They said: "${text.replace(/"/g,"'")}"
@@ -933,13 +944,15 @@ ${ALL_SYM.map(id=>`- ${id}: ${AI_DESC[id]||SYM_LABEL[id]}`).join("\n")}
 
 "present": symptoms they say they have now. "absent": symptoms they say they don't have, or that have gone away. Leave out anything not mentioned. If you're unsure whether chest, breath, severeHead or neuro is present, put it in "present".
 "sleep": "short", "ok", "good" or null. "mood": "low", "meh", "good" or null.
-Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null}`;
+"tempC": a body temperature they state, converted to °C, or null.
+Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null,"tempC":null}`;
   }
   function cleanAI(j){
     const ids = a => Array.isArray(a) ? [...new Set(a.map(String).filter(x=>ALL_SYM.includes(x)))] : [];
     return { present: ids(j?.present), absent: ids(j?.absent),
       sleep: ["short","ok","good"].includes(j?.sleep) ? j.sleep : null,
-      mood: ["low","meh","good"].includes(j?.mood) ? j.mood : null };
+      mood: ["low","meh","good"].includes(j?.mood) ? j.mood : null,
+      tempC: (typeof j?.tempC==="number" && j.tempC>=34 && j.tempC<=43.5) ? Math.round(j.tempC*10)/10 : null };
   }
   async function understand(text, question=""){
     const r = agent.parse(text, toSignals(S));
@@ -947,6 +960,7 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null}`;
     const rulesAbsent = r.negated.map(l=>SYM_ID[l]).filter(Boolean);
     const rulesSleep = r.heard.includes("Short sleep") ? "short" : r.heard.includes("Good sleep") ? "good" : null;
     const rulesMood = r.heard.includes("Low mood") ? "low" : null;
+    const rulesTemp = r.signals.tempC!==S.tempC ? r.signals.tempC : null;
     let ai=null, source="Rules only";
     if (aiSample && aiOn){
       try{ ai = cleanAI(await aiSample.json(aiPrompt(text, question), {modelTier:"quick"})); source="AI + rules"; }
@@ -964,7 +978,7 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null}`;
     }
     for (const x of present) absent.delete(x);
     return { text, present:[...present], absent:[...absent].filter(x=>S.sym.has(x)||rulesAbsent.includes(x)||ai?.absent.includes(x)),
-             sleep: ai?.sleep ?? rulesSleep, mood: ai?.mood ?? rulesMood, source, disagreed };
+             sleep: ai?.sleep ?? rulesSleep, mood: ai?.mood ?? rulesMood, tempC: rulesTemp ?? ai?.tempC ?? null, source, disagreed };
   }
   function applyUnderstanding(u){
     u.present.forEach(x=>S.sym.add(x)); u.absent.forEach(x=>S.sym.delete(x)); S.sym.delete("none");
@@ -972,6 +986,7 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null}`;
     if (u.sleep==="ok") S.sleepH=6.6;
     if (u.sleep==="good") S.sleepH=Math.max(S.sleepH,7.3);
     if (u.mood) S.mood=u.mood;
+    if (u.tempC!=null) S.tempC=u.tempC;
     showUnderstanding(u);
   }
   const lc = x => SYM_LABEL[x].toLowerCase();
@@ -979,6 +994,7 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null}`;
     const parts=[];
     if (u.present.length) parts.push("I heard " + u.present.map(lc).join(", "));
     if (u.absent.length) parts.push((parts.length?"and ":"Noted: ") + "no " + u.absent.map(lc).join(", no "));
+    if (u.tempC!=null) parts.push((parts.length?"and a ":"Noted: a ") + `temperature of ${u.tempC} °C`);
     let t = parts.length ? parts.join(" ") + "." : "";
     if (u.disagreed.length) t += ` To be safe I logged ${u.disagreed.map(lc).join(" and ")}. Say “no ${lc(u.disagreed[0])}” if that’s wrong.`;
     return t;
@@ -986,7 +1002,7 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null}`;
   function showUnderstanding(u){
     $("aiSrc").textContent=u.source; $("aiSrc").classList.toggle("ai", u.source!=="Rules only");
     const chip=(x,c)=>`<span class="uchip ${c}">${c==="a"?"No ":""}${c==="a"?SYM_LABEL[x].toLowerCase():SYM_LABEL[x]}</span>`;
-    const st = [u.sleep && `<span class="uchip">Sleep: ${u.sleep}</span>`, u.mood && `<span class="uchip">Mood: ${u.mood}</span>`].filter(Boolean).join("");
+    const st = [u.sleep && `<span class="uchip">Sleep: ${u.sleep}</span>`, u.mood && `<span class="uchip">Mood: ${u.mood}</span>`, u.tempC!=null && `<span class="uchip p">${u.tempC} °C</span>`].filter(Boolean).join("");
     const chips = u.present.map(x=>chip(x, RED_SYM.includes(x)?"r":"p")).join("") + u.absent.map(x=>chip(x,"a")).join("") + st;
     $("understood").innerHTML = `<p class="usaid">“${esc(u.text)}”</p><div class="uchips">${chips || '<span class="uchip a" style="text-decoration:none">nothing health-related</span>'}</div>`
       + (u.disagreed.length ? `<p class="unote">The rules heard ${u.disagreed.map(lc).join(", ")}, Claude didn’t. Kept it, to be safe.</p>` : "");
@@ -1009,7 +1025,7 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null}`;
     mood("thinking");
     understand(text).then(u=>{
       applyUnderstanding(u);
-      let any = u.present.length || u.absent.length || u.sleep || u.mood;
+      let any = u.present.length || u.absent.length || u.sleep || u.mood || u.tempC!=null;
       if (!any && /\b(good|great|fine|happy|okay|ok)\b/i.test(text)){ S.mood = S.mood || "good"; any = true; }
       const ack = ackText(u);
       append(tx(ack || (any ? "Got it." : "No symptoms in that. Here’s where you stand…"), "", u.disagreed.length?"amber":"", "Medical agent · "+u.source));
@@ -1048,7 +1064,7 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null}`;
   function setMode(){
     const chip=$("modeChip"); if(!chip) return;
     const mode = !voiceFlow ? "agent" : bodyStep>=0 ? "body" : "checkin";
-    const step = mode==="body" ? ` · ${Math.min(bodyStep+1,4)} of 4` : mode==="checkin" ? ({sleep:" · 1 of 3", mood:" · 2 of 3", sym:" · 3 of 3"}[awaiting]||"") : "";
+    const step = mode==="body" ? ` · ${Math.min(bodyStep+1,5)} of 5` : mode==="checkin" ? ({sleep:" · 1 of 3", mood:" · 2 of 3", sym:" · 3 of 3"}[awaiting]||"") : "";
     chip.dataset.mode = mode; chip.textContent = MODE_LABEL[mode] + step;
   }
   function showHeard(raw, how){ partial.innerHTML = `Heard “${esc(raw)}” → <b>${how}</b>`; clearTimeout(showHeard.t); showHeard.t=setTimeout(()=>{ partial.textContent=""; }, 5000); }
@@ -1160,8 +1176,9 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null}`;
   /* --- voice body scan: zone by zone --- */
   const BODY=[
     {zone:"head",  q:"Head and eyes first. Any headache, or changes in your vision?", help:"Say headache, vision change, or no.", severe:["severeHead","neuro"]},
-    {zone:"neck",  q:"Now your neck. Any swelling there, or does your face feel puffier than usual?", help:"Say neck swelling, puffy face, or no.", severe:[]},
+    {zone:"neck",  q:"Now your neck. Any swelling or stiffness, or does your face feel puffier than usual?", help:"Say neck swelling, stiff neck, puffy face, or no.", severe:[]},
     {zone:"heart", q:"Heart and lungs. Any racing heartbeat, chest pain, or trouble breathing?", help:"Say heart racing, chest pain, trouble breathing, or no.", severe:["chest","breath"]},
+    {zone:"body",  q:"Whole body. Any fever, chills, or feeling hot? If you’ve taken your temperature, tell me the number.", help:"Say fever, chills, a temperature like 38.5, or no.", severe:[]},
     {zone:"mind",  q:"Last one: mind and sleep. How did you sleep, and how are you feeling?", help:"For example: slept badly, feeling okay.", severe:[]}
   ];
   const RED=["chest","breath","severeHead","neuro"];
@@ -1198,19 +1215,21 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null}`;
       zones.mind = bad ? "watch" : "ok";
       ack = bad ? "Thanks. I’ll keep an eye on that." : "Sounds good.";
     } else {
-      if (u.present.length || u.absent.length){ applyUnderstanding(u); ack = u.present.length ? ackText(u) : "Okay, all clear."; }
+      if (u.present.length || u.absent.length || u.tempC!=null){ applyUnderstanding(u); ack = (u.present.length || u.tempC!=null) ? ackText(u) : "Okay, all clear."; }
       else if (NO.test(t)){ ack="Okay, all clear."; showUnderstanding(u); }
       else if (/\byes\b/.test(t)) return reprompt("Which one? "+st.help);
       else return reprompt(st.help);
-      const inZone = { head:["headache","vision","severeHead","neuro"], neck:["neck","puffy"], heart:["palp","chest","breath"] }[st.zone];
+      const inZone = { head:["headache","vision","severeHead","neuro"], neck:["neck","puffy","stiffNeck"], heart:["palp","chest","breath"], body:["fever"] }[st.zone];
       const hit = [...S.sym].filter(x=>inZone.includes(x));
-      zones[st.zone] = hit.some(x=>RED.includes(x)) ? "alert" : hit.length ? "watch" : "ok";
+      const feverish = S.sym.has("fever") || (S.tempC!=null && S.tempC>=S.baselineTempC+1);
+      if (st.zone==="body") zones.body = (feverish && (S.sym.has("stiffNeck") || (S.tempC!=null && S.tempC>=S.baselineTempC+2))) ? "alert" : feverish ? "watch" : "ok";
+      else zones[st.zone] = hit.some(x=>RED.includes(x)) ? "alert" : hit.length ? "watch" : "ok";
     }
     paintZones();
     document.querySelector(`.zone[data-z="${st.zone}"]`)?.classList.remove("scanning");
     awaiting=null; clearTimeout(noAnswerT); pendingAck=ack;
     react(zones[st.zone]==="ok" ? "none" : "sym");
-    if ([...S.sym].some(x=>RED.includes(x))){ finishBodyScan(); return; }   // red flag: stop the scan and act now
+    if ([...S.sym].some(x=>RED.includes(x)) || zones.body==="alert"){ finishBodyScan(); return; }   // red flag: stop the scan and act now
     bodyStep++;
     if (bodyStep<BODY.length) setTimeout(askBody, 450); else finishBodyScan();
   }

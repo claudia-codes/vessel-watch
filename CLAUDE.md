@@ -38,7 +38,7 @@ A NASA Space Apps 2026 hackathon prototype. VesselWatch is an astronaut health c
 | `agent/agent.js` | Engine (ES module): `createAgent`, `loadPlaybook`, `assess`, `parse`, `planDay` |
 | `agent/agent.py` | Same engine in Python (`Agent.from_file`, `assess`, `parse`, `plan_day`) for a FastAPI backend |
 | `agent/scenarios.json` | 11 test scenarios, with expected severity, rules and missions |
-| `agent/redflags.json` | Safety set: 54 red-flag phrasings (must be caught), 44 negations (must not alarm), mixed sentences, clearing checks |
+| `agent/redflags.json` | Safety set: 54 red-flag phrasings (must be caught), 48 negations (must not alarm), mixed sentences, clearing checks |
 | `.github/workflows/agent-tests.yml` | Runs both engines' tests on every push/PR touching `agent/` |
 | `agent/test.mjs`, `agent/test_agent.py` | Test runners; both must print "All passed" |
 | `agent/README.md` | Agent docs: signals, rule format, evidence levels, reuse |
@@ -76,15 +76,16 @@ Lumi moods (CSS classes on the SVG): `happy` (cyan, smiling eyes, blush, fast ta
 - Agent panel section "How Lumi understood you" shows the utterance, chips (present / no …), the source (AI + rules or Rules only) and an AI on/off toggle.
 - Never weaken the safety merge or delete test cases to make tests pass; add the failing phrase to `redflags.json` and fix the lexicon.
 
-## The medical agent (playbook v0.5.0)
+## The medical agent (playbook v0.6.0)
 
 Severity: 0–1 Green (nobody told), 2 Amber (crew medical officer told what to do), 3 Red (medical officer now plus Earth). Roles: crew, cmo, cmd (commander), earth.
 
-Rules: RF-1 chest pain or sudden breathlessness (red), RF-2 sudden severe headache / vision loss / weakness / slurred speech (red), VT-1 suspected clot on scan (red, NASA protocol: treatment protocol, no EVA or resistive exercise 30+ days), MED-1 anticoagulant stock short of course, LD-2 anticoagulant with landing ≤2 days (NASA pause 48 h treatment / 24 h prevention), VT-2 head/face/neck symptoms and no scan today → scan within 24 h, VT-3 stagnant flow + risk factor → flight surgeon reviews preventive protocol, VT-4 stagnant flow without risk factors → more scans + hydration, CV-1 palpitations, CV-2 resting HR high 3 days (demo threshold), NO-1 gradual vision change (SANS), OP-1 spacewalk ≤3 days while not at baseline → go/no-go, LAB-1 lab marker outside own pre-flight range (demo threshold, design from OSD-575), LD-1 landing ≤7 days → landing checklist, EX-1 exercise <60 min/day (demo threshold), AN-1 tired on exertion after day 90 → blood count, BH-1 3+ rough nights or low days → private Earth note offer, WB-1 one short night or low mood, WB-0 baseline fallback.
+Rules: RF-1 chest pain or sudden breathlessness (red), RF-2 sudden severe headache / vision loss / weakness / slurred speech (red), VT-1 suspected clot on scan (red, NASA protocol: treatment protocol, no EVA or resistive exercise 30+ days), MED-1 anticoagulant stock short of course, LD-2 anticoagulant with landing ≤2 days (NASA pause 48 h treatment / 24 h prevention), VT-2 head/face/neck symptoms and no scan today → scan within 24 h, VT-3 stagnant flow + risk factor → flight surgeon reviews preventive protocol, VT-4 stagnant flow without risk factors → more scans + hydration, FV-1 fever or chills, or temperature ≥ 1 °C above the personal in-flight baseline (Amber: CMO checks vitals, rest, fluids, hygiene, fever medicine only via CMO; demo threshold because resting core temperature runs ~1 °C higher in space, Stahn et al. 2017), FV-2 temperature ≥ 2 °C above baseline or fever + stiff neck (Red), MED-2 fever while on an anticoagulant → avoid ibuprofen and aspirin (both in the ISS kit), flight surgeon confirms a safe option such as paracetamol, CV-1 palpitations, CV-2 resting HR high 3 days (demo threshold), NO-1 gradual vision change (SANS), OP-1 spacewalk ≤3 days while not at baseline → go/no-go, LAB-1 lab marker outside own pre-flight range (demo threshold, design from OSD-575), LD-1 landing ≤7 days → landing checklist, EX-1 exercise <60 min/day (demo threshold), AN-1 tired on exertion after day 90 → blood count, BH-1 3+ rough nights or low days → private Earth note offer, WB-1 one short night or low mood, WB-0 baseline fallback.
 
-Daily missions (`maintenance.tasks`): symptom check (auto), hydration (6 drink bags, 8 with stagnant flow), exercise 90 min / high-intensity 30 min after EX-1 / aerobic-only 45 min after a clot, neck scan, treatment check-in, weekly vision test, blood draw, landing checklist, bank a good moment. Goals are demo values.
+Daily missions (`maintenance.tasks`): symptom check (auto), with fever: temperature check twice a day, rest day, extra hydration (and no exercise block), hydration (6 drink bags, 8 with stagnant flow), exercise 90 min / high-intensity 30 min after EX-1 / aerobic-only 45 min after a clot, neck scan, treatment check-in, weekly vision test, blood draw, landing checklist, bank a good moment. Goals are demo values.
 
-Demo scenarios (simulated, crew member "Rin Takeda", CMO "Ines", 232-day mission): Normal day (FD32) → Green; Needs a closer look (FD47, 3rd short night, headache, puffy face) → Amber, neck-scan mission; Red alert (FD54, suspected clot on today's scan, spacewalk in 4 days) → Red.
+Demo scenarios (simulated, crew member "Rin Takeda", CMO "Ines", 232-day mission): Normal day (FD32) → Green; Needs a closer look (FD47, 3rd short night, headache, puffy face) → Amber, neck-scan mission; Red alert (FD54, suspected clot on today's scan, spacewalk in 4 days) → Red; Fever (FD63, 39.0 °C, still on clot treatment) → Amber with the ibuprofen/aspirin warning first.
+- Body scan has 5 steps: head and eyes, neck (incl. stiffness), heart and lungs, whole body (fever, temperature number), mind and sleep. The torso on the body map is the "Whole body" zone.
 
 ## Evidence sources used
 

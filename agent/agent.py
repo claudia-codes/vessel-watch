@@ -24,6 +24,7 @@ DEFAULT_SIGNALS: dict[str, Any] = {
     "restingHR": None, "baselineHR": None, "hrHighDays": 0,
     "anticoag": "none", "anticoagCoverageDays": 999, "anticoagCourseDays": 0,
     "labsOutOfRange": [],
+    "tempC": None, "baselineTempC": 37.8,
 }
 
 
@@ -135,6 +136,26 @@ def negation_checker(cfg: dict | None):
     return is_negated
 
 
+def read_measure(kind, raw, unit):
+    """Mirror of agent.js readMeasure: temperature in °C, Fahrenheit converted, out-of-range ignored."""
+    try:
+        v = float(str(raw).replace(",", "."))
+    except ValueError:
+        return None
+    if kind == "temperature":
+        if (unit or "").lower().startswith("f") or v > 45:
+            v = (v - 32) * 5 / 9
+        v = _js_round1(v)
+        return v if 34 <= v <= 43.5 else None
+    return v
+
+
+def _js_round1(v: float) -> float:
+    # Math.round(v * 10) / 10, which rounds .5 up (Python's round() rounds half to even)
+    import math
+    return math.floor(v * 10 + 0.5) / 10
+
+
 def _first_sentence(text: str) -> str:
     m = re.match(r"^.*?[.?!](\s|$)", text)
     return (m.group(0) if m else text).strip()
@@ -243,6 +264,17 @@ class Agent:
             if "mood" in st:
                 s["mood"] = st["mood"]
             heard.append(entry["label"])
+        for entry in self.lexicon.get("measures", []):
+            for p in entry["patterns"]:
+                m = re.search(p, t, re.I)
+                if not m:
+                    continue
+                v = read_measure(entry.get("kind"), m.group(1), m.group(2) if m.re.groups >= 2 else None)
+                if v is None:
+                    continue
+                s[entry["signal"]] = v
+                heard.append(f'{entry["label"]} {v} °C')
+                break
         return {"signals": s, "heard": heard, "negated": negated}
 
     def plan_day(self, data: dict) -> dict:

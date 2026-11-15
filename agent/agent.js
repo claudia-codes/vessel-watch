@@ -26,7 +26,8 @@ export const DEFAULT_SIGNALS = Object.freeze({
   evaIn: 999, landingIn: 999, exerciseMin7d: 120,
   restingHR: null, baselineHR: null, hrHighDays: 0,
   anticoag: "none", anticoagCoverageDays: 999, anticoagCourseDays: 0,
-  labsOutOfRange: []
+  labsOutOfRange: [],
+  tempC: null, baselineTempC: 37.8
 });
 
 export function normalizeSignals(input = {}) {
@@ -98,6 +99,18 @@ export function negationChecker(cfg) {
     if (inside.test(t.slice(start, end))) return true;
     return after.test(t.slice(end, ce));
   };
+}
+
+/** Read a spoken measurement. Temperature: Fahrenheit (unit f, or a value above 45) becomes °C; out-of-range values are ignored. */
+export function readMeasure(kind, raw, unit) {
+  let v = parseFloat(String(raw).replace(",", "."));
+  if (!isFinite(v)) return null;
+  if (kind === "temperature") {
+    if (/^f/i.test(unit || "") || v > 45) v = (v - 32) * 5 / 9;
+    v = Math.round(v * 10) / 10;
+    return v >= 34 && v <= 43.5 ? v : null;
+  }
+  return v;
 }
 
 function firstSentence(text) {
@@ -186,6 +199,17 @@ export function createAgent(playbook) {
       if ("shortNightsMin" in set) s.shortNights = Math.max(s.shortNights, set.shortNightsMin);
       if ("mood" in set) s.mood = set.mood;
       heard.push(entry.label);
+    }
+    for (const entry of lexicon?.measures || []) {
+      for (const p of entry.patterns) {
+        const m = t.match(new RegExp(p, "i"));
+        if (!m) continue;
+        const v = readMeasure(entry.kind, m[1], m[2]);
+        if (v == null) continue;
+        s[entry.signal] = v;
+        heard.push(`${entry.label} ${v} °C`);
+        break;
+      }
     }
     return { signals: s, heard, negated };
   }

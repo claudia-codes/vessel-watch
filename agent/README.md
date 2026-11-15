@@ -2,7 +2,7 @@
 
 A transparent rule engine for astronaut circulation, heart and wellbeing self-checks. It reads a day's signals (sleep, mood, symptoms, neck-scan result, schedule, wearable trends) and returns a severity level, the rules that matched, the evidence behind each one, what to do, who is told, and a plain-language message for the crew member.
 
-**Decision support, not diagnosis.** It never diagnoses and never outputs drug doses. Playbook v0.5.0 is a draft pending clinician review.
+**Decision support, not diagnosis.** It never diagnoses and never outputs drug doses. Playbook v0.6.0 is a draft pending clinician review.
 
 ## What's in the folder
 
@@ -12,7 +12,7 @@ A transparent rule engine for astronaut circulation, heart and wellbeing self-ch
 | `agent.js` | The engine as an ES module, for browsers and Node. |
 | `agent.py` | The same engine in Python, for a FastAPI or other backend. |
 | `scenarios.json` | 11 test cases with expected results. |
-| `redflags.json` | Safety test set: 54 red-flag phrasings that must be caught, 44 negations that must not raise an alarm, mixed sentences, and symptoms that must clear when they're gone. |
+| `redflags.json` | Safety test set: 54 red-flag phrasings that must be caught, 48 negations that must not raise an alarm, mixed sentences, and symptoms that must clear when they're gone. |
 | `test.mjs`, `test_agent.py` | Run the test cases against each engine. Both engines must give identical results. |
 
 ## Use it in JavaScript
@@ -105,6 +105,7 @@ Every field is optional; missing ones fall back to safe defaults. The full list 
 | `exerciseMin7d` | Average exercise minutes a day this week |
 | `restingHR`, `baselineHR`, `hrHighDays` | Heart rate today, usual, consecutive high days |
 | `anticoag`, `anticoagCoverageDays`, `anticoagCourseDays` | `none`, `treatment` or `prophylaxis`; stock on board vs days still needed |
+| `tempC`, `baselineTempC` | Body temperature in °C, and this person's usual resting temperature in flight (about 1 °C above Earth). Spoken readings like "38.6" or "101 F" are parsed |
 | `labsOutOfRange` | Lab markers outside this person's own pre-flight range at a scheduled draw, e.g. `["CRP"]` |
 
 ## Severity levels
@@ -151,7 +152,7 @@ Every rule declares one, and apps should show it:
 - **clinical-red-flag**: standard emergency warning sign.
 - **peer-reviewed**: a study, not a NASA operational rule.
 - **standard-practice**: long-standing spaceflight practice, like fluid loading before landing.
-- **demo-threshold**: a placeholder value chosen for the demo. `CV-2` (heart rate), `EX-1` (exercise) and `LAB-1` (lab markers) use these and need a clinician's numbers.
+- **demo-threshold**: a placeholder value chosen for the demo. `CV-2` (heart rate), `EX-1` (exercise), `LAB-1` (lab markers) and `FV-1` (fever at 1 °C above the in-flight baseline) use these and need a clinician's numbers.
 
 ## Datasets
 
@@ -161,7 +162,7 @@ Every rule declares one, and apps should show it:
 
 ## Safety tests
 
-`redflags.json` is checked by both test runners and by GitHub Actions on every push and pull request that touches `agent/`. Current result: **54 of 54 red-flag phrases caught, 0 of 44 false alarms on negations.** The set was written by the team, not clinically validated: whenever someone finds a phrase the agent misreads, add it to `redflags.json` first, then fix the lexicon until the tests pass.
+`redflags.json` is checked by both test runners and by GitHub Actions on every push and pull request that touches `agent/`. Current result: **54 of 54 red-flag phrases caught, 0 of 48 false alarms on negations.** The set was written by the team, not clinically validated: whenever someone finds a phrase the agent misreads, add it to `redflags.json` first, then fix the lexicon until the tests pass.
 
 ## AI understanding (in the app)
 
