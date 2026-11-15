@@ -40,6 +40,8 @@ A NASA Space Apps 2026 hackathon prototype. VesselWatch is an astronaut health c
 | `agent/agent.js` | Engine (ES module): `createAgent`, `loadPlaybook`, `assess`, `parse`, `planDay` |
 | `agent/agent.py` | Same engine in Python (`Agent.from_file`, `assess`, `parse`, `plan_day`) for a FastAPI backend |
 | `agent/scenarios.json` | 11 test scenarios, with expected severity, rules and missions |
+| `agent/redflags.json` | Safety set: 54 red-flag phrasings (must be caught), 48 negations (must not alarm), mixed sentences, clearing checks |
+| `.github/workflows/agent-tests.yml` | Runs both engines' tests on every push/PR touching `agent/` |
 | `agent/test.mjs`, `agent/test_agent.py` | Test runners; both must print "All passed" |
 | `agent/README.md` | Agent docs: signals, rule format, evidence levels, reuse |
 | `prototypes/watch-lumi.html` | **Lumi watch**: VesselWatch on a round smartwatch. Same engine stream (`../engine/hemomind-core.js`), playbook (`../agent/`) and Lumi. Five swipeable screens: face (Lumi + status word + live HR), 3-tap check-in → playbook verdict and who is told, vitals with citations, neck vein (OCHMO flow + EVA/ARED), Earth delay and Houston queue. No doses on the watch. Its own Nominal / Stasis / Clot demo strip. First entry in "Other prototypes"; the prototype view has a "← Back to the app" button |
@@ -64,6 +66,7 @@ Lumi moods (CSS classes on the SVG): `happy` (cyan, smiling eyes, blush, fast ta
 
 ### Voice
 
+- **Three modes**, shown in the console header chip: **Agent** (default: free talk goes to the medical agent), **Check-in** and **Body scan** (everything said is an answer to the current question until the flow ends or "stop"). Commands work in every mode. Intent detection normalizes the transcript (case, punctuation) and accepts common mishearings ("checking", "check up", "body scam"); a phrase counts as a command if it's short (≤4 words) or has an action verb (activate, start…). Near-commands that don't match get "Did you mean…?" instead of going to the agent. The line under Lumi shows what was heard and how it was routed.
 - Wake word "Lumi". Commands: "Lumi, activate check-in" and "Lumi, body scan". "Lumi, repeat" and "Lumi, stop" during a session. "Lumi" alone waits ~8 s for a command.
 - Turn-taking: Lumi asks, listens, echoes what it understood ("Got it, a short night"), then asks the next question. Answers don't need the wake word. One reprompt after ~25 s of silence, then it pauses.
 - Body scan goes zone by zone; a red flag (chest pain, breathlessness, sudden severe headache, neuro signs) stops the scan and runs the agent immediately.
@@ -71,15 +74,23 @@ Lumi moods (CSS classes on the SVG): `happy` (cyan, smiling eyes, blush, fast ta
 - Engines: browser SpeechRecognition + speech synthesis (Chrome) gives a full spoken loop, pausing recognition while Lumi speaks. Inside claude.ai the app can use the `dictation` and `tts` artifact capabilities, but the platform can't speak while dictating, so replies there are on screen with a chime. Present the live demo from the Vercel deploy in Chrome.
 - `window.__vw.handleListen(text)` is a test hook that feeds text as if heard.
 
-## The medical agent (playbook v0.4.0)
+## Understanding speech
+
+- `agent.parse` is negation-aware (config in `lexicon.negation`): "no chest pain", "my headache is gone", "heart isn't racing" don't count and clear earlier entries. Returns `{signals, heard, negated}`.
+- In the app, `understand()` combines two readers: the rules, and Claude via the artifact `sample` capability (only inside claude.ai; `modelTier: "quick"`, JSON output validated against the symptom ids). The rules decide. **Safety merge:** a red flag stays if either reader heard it (disagreement is shown in the panel); Claude may overrule rules only on minor symptoms. Lumi echoes what it understood ("I heard headache, and no chest pain") so the user can correct it.
+- Agent panel section "How Lumi understood you" shows the utterance, chips (present / no …), the source (AI + rules or Rules only) and an AI on/off toggle.
+- Never weaken the safety merge or delete test cases to make tests pass; add the failing phrase to `redflags.json` and fix the lexicon.
+
+## The medical agent (playbook v0.6.0)
 
 Severity: 0–1 Green (nobody told), 2 Amber (crew medical officer told what to do), 3 Red (medical officer now plus Earth). Roles: crew, cmo, cmd (commander), earth.
 
-Rules: RF-1 chest pain or sudden breathlessness (red), RF-2 sudden severe headache / vision loss / weakness / slurred speech (red), VT-1 suspected clot on scan (red, NASA protocol: treatment protocol, no EVA or resistive exercise 30+ days), MED-1 anticoagulant stock short of course, LD-2 anticoagulant with landing ≤2 days (NASA pause 48 h treatment / 24 h prevention), VT-2 head/face/neck symptoms and no scan today → scan within 24 h, VT-3 stagnant flow + risk factor → flight surgeon reviews preventive protocol, VT-4 stagnant flow without risk factors → more scans + hydration, CV-1 palpitations, CV-2 resting HR high 3 days (demo threshold), NO-1 gradual vision change (SANS), OP-1 spacewalk ≤3 days while not at baseline → go/no-go, LAB-1 lab marker outside own pre-flight range (demo threshold, design from OSD-575), LD-1 landing ≤7 days → landing checklist, EX-1 exercise <60 min/day (demo threshold), AN-1 tired on exertion after day 90 → blood count, BH-1 3+ rough nights or low days → private Earth note offer, WB-1 one short night or low mood, WB-0 baseline fallback.
+Rules: RF-1 chest pain or sudden breathlessness (red), RF-2 sudden severe headache / vision loss / weakness / slurred speech (red), VT-1 suspected clot on scan (red, NASA protocol: treatment protocol, no EVA or resistive exercise 30+ days), MED-1 anticoagulant stock short of course, LD-2 anticoagulant with landing ≤2 days (NASA pause 48 h treatment / 24 h prevention), VT-2 head/face/neck symptoms and no scan today → scan within 24 h, VT-3 stagnant flow + risk factor → flight surgeon reviews preventive protocol, VT-4 stagnant flow without risk factors → more scans + hydration, FV-1 fever or chills, or temperature ≥ 1 °C above the personal in-flight baseline (Amber: CMO checks vitals, rest, fluids, hygiene, fever medicine only via CMO; demo threshold because resting core temperature runs ~1 °C higher in space, Stahn et al. 2017), FV-2 temperature ≥ 2 °C above baseline or fever + stiff neck (Red), MED-2 fever while on an anticoagulant → avoid ibuprofen and aspirin (both in the ISS kit), flight surgeon confirms a safe option such as paracetamol, CV-1 palpitations, CV-2 resting HR high 3 days (demo threshold), NO-1 gradual vision change (SANS), OP-1 spacewalk ≤3 days while not at baseline → go/no-go, LAB-1 lab marker outside own pre-flight range (demo threshold, design from OSD-575), LD-1 landing ≤7 days → landing checklist, EX-1 exercise <60 min/day (demo threshold), AN-1 tired on exertion after day 90 → blood count, BH-1 3+ rough nights or low days → private Earth note offer, WB-1 one short night or low mood, WB-0 baseline fallback.
 
-Daily missions (`maintenance.tasks`): symptom check (auto), hydration (6 drink bags, 8 with stagnant flow), exercise 90 min / high-intensity 30 min after EX-1 / aerobic-only 45 min after a clot, neck scan, treatment check-in, weekly vision test, blood draw, landing checklist, bank a good moment. Goals are demo values.
+Daily missions (`maintenance.tasks`): symptom check (auto), with fever: temperature check twice a day, rest day, extra hydration (and no exercise block), hydration (6 drink bags, 8 with stagnant flow), exercise 90 min / high-intensity 30 min after EX-1 / aerobic-only 45 min after a clot, neck scan, treatment check-in, weekly vision test, blood draw, landing checklist, bank a good moment. Goals are demo values.
 
-Demo scenarios come from the HemoMind engine (fictional crew member "Dr. Elena Vance" with an LNG-IUD and no risk factors; CMO "Ines"; 232-day mission). All 3 are at flight day ~50, matching Marshall-Goebel 2019, and only the left IJV finding changes: NOMINAL (forward flow) → Green; PRETHROMBOTIC (stagnant flow, no risk factors) → Amber, no apixaban, hydration and more frequent scans (VT-4); EMERGENCY_THROMBOSIS (occlusive clot) → Red, EVA/ARED blocked ≥30 days, apixaban treatment regimen (VT-1). The page derives the playbook's signals (scan, heart rate, sleep, risk factors) from the stream; symptoms and mood come only from the check-in.
+Demo scenarios come from the HemoMind engine (fictional crew member "Dr. Elena Vance" with an LNG-IUD and no risk factors; CMO "Ines"; 232-day mission). All 3 are at flight day ~50, matching Marshall-Goebel 2019, and only the left IJV finding changes: NOMINAL (forward flow) → Green; PRETHROMBOTIC (stagnant flow, no risk factors) → Amber, no apixaban, hydration and more frequent scans (VT-4); EMERGENCY_THROMBOSIS (occlusive clot) → Red, EVA/ARED blocked ≥30 days, apixaban treatment regimen (VT-1). The page derives the playbook's signals (scan, heart rate, sleep, risk factors) from the stream; symptoms and mood come only from the check-in. A fourth demo button, FEVER, overlays the check-in on the NOMINAL stream (39.0 °C, fever, still on clot treatment) → Amber with FV-1 and the MED-2 ibuprofen/aspirin warning first.
+- Body scan has 5 steps: head and eyes, neck (incl. stiffness), heart and lungs, whole body (fever, temperature number), mind and sleep. The torso on the body map is the "Whole body" zone.
 
 ## Evidence sources used
 
@@ -120,6 +131,7 @@ Suggested ownership: UI, Lumi and voice → Claudia; backend and NASA data → b
 
 1. Finish the Vercel import and verify the live URL (playbook loads, scenarios run, voice works in Chrome).
 2. Split `index.html` into modules before teammates start, to avoid merge conflicts: `styles.css`, `js/lumi.js`, `js/voice.js`, `js/missions.js`, `js/app.js`.
-3. Branch + pull request workflow; Vercel previews per PR; freeze `main` before the demo.
+3. Branch + pull request workflow (agent tests run automatically); Vercel previews per PR; freeze `main` before the demo.
+3b. For AI understanding outside claude.ai (Vercel), add a small backend endpoint that calls the Claude API with a server-side key; the page currently falls back to rules only there.
 4. Get a doctor to review the playbook; replace demo thresholds.
 5. Optional features discussed: guided ultrasound scan mode, landing-readiness countdown, heart-rate trends; future-countermeasures slide (LBNP, thigh cuffs, compression garments, fluid loading, SPRINT exercise, circadian lighting, VR, self-guided therapy). Don't recommend iron supplements for space anemia.

@@ -26,7 +26,8 @@ export const DEFAULT_SIGNALS = Object.freeze({
   evaIn: 999, landingIn: 999, exerciseMin7d: 120,
   restingHR: null, baselineHR: null, hrHighDays: 0,
   anticoag: "none", anticoagCoverageDays: 999, anticoagCourseDays: 0,
-  labsOutOfRange: []
+  labsOutOfRange: [],
+  tempC: null, baselineTempC: 37.8
 });
 
 export function normalizeSignals(input = {}) {
@@ -72,6 +73,44 @@ export function evaluate(cond, s) {
     if (cond[op]) { const [p, v] = cond[op]; return CMP[op](get(s, p), value(v, s)); }
   }
   throw new Error(`Unknown condition: ${JSON.stringify(cond)}`);
+}
+
+/**
+ * Build a checker that says whether a match at [start, end) in text t is negated.
+ * Scope is the clause around the match; see lexicon.negation in the playbook.
+ * beforeOnly skips the inside/after checks (used for sleep and mood phrases such as "didn't sleep").
+ */
+export function negationChecker(cfg) {
+  if (!cfg) return () => false;
+  const brk = new RegExp(cfg.clauseBreak, "gi");
+  const before = new RegExp(cfg.before, "i"), inside = new RegExp(cfg.inside, "i"), after = new RegExp(cfg.after, "i");
+  const n = cfg.beforeWords || 3;
+  return function isNegated(t, start, end, beforeOnly = false) {
+    let cs = 0, ce = t.length;
+    for (const m of t.matchAll(brk)) {
+      if (!m[0]) continue;
+      const ms = m.index, me = ms + m[0].length;
+      if (me <= start) cs = Math.max(cs, me);
+      else if (ms >= end) { ce = Math.min(ce, ms); break; }
+    }
+    const pre = (t.slice(cs, start).match(/[a-z0-9']+/g) || []).slice(-n).join(" ");
+    if (before.test(pre)) return true;
+    if (beforeOnly) return false;
+    if (inside.test(t.slice(start, end))) return true;
+    return after.test(t.slice(end, ce));
+  };
+}
+
+/** Read a spoken measurement. Temperature: Fahrenheit (unit f, or a value above 45) becomes °C; out-of-range values are ignored. */
+export function readMeasure(kind, raw, unit) {
+  let v = parseFloat(String(raw).replace(",", "."));
+  if (!isFinite(v)) return null;
+  if (kind === "temperature") {
+    if (/^f/i.test(unit || "") || v > 45) v = (v - 32) * 5 / 9;
+    v = Math.round(v * 10) / 10;
+    return v >= 34 && v <= 43.5 ? v : null;
+  }
+  return v;
 }
 
 function firstSentence(text) {
@@ -120,29 +159,59 @@ export function createAgent(playbook) {
 
   /**
    * Turn free speech or typed text into signal updates using the playbook's lexicon.
-   * Returns the updated signals and a list of what was understood.
+   * Negation-aware: "no chest pain", "my headache is gone" and "heart isn't racing"
+   * do not count as symptoms, and clear a symptom that was logged earlier.
+   * Returns the updated signals, what was understood (heard) and what was ruled out (negated).
    */
   function parse(text, input) {
     const s = normalizeSignals(input);
-    const t = String(text || "").toLowerCase();
-    const heard = [];
+    const t = String(text || "").toLowerCase().replace(/[\u2018\u2019]/g, "'");
+    const isNeg = negationChecker(lexicon?.negation);
+    const heard = [], negated = [];
     const sym = new Set(s.symptoms);
     for (const entry of lexicon?.symptoms || []) {
-      if (entry.unless && sym.has(entry.unless)) continue;
-      if (entry.patterns.some(p => new RegExp(p, "i").test(t)) && !sym.has(entry.symptom)) {
-        sym.add(entry.symptom); heard.push(entry.label);
+      let pos = false, neg = false;
+      for (const p of entry.patterns) {
+        for (const m of t.matchAll(new RegExp(p, "gi"))) {
+          if (!m[0]) continue;
+          if (isNeg(t, m.index, m.index + m[0].length)) neg = true; else pos = true;
+        }
+      }
+      if (pos) {
+        if (entry.unless && sym.has(entry.unless)) continue;
+        if (!sym.has(entry.symptom)) { sym.add(entry.symptom); heard.push(entry.label); }
+      } else if (neg) {
+        sym.delete(entry.symptom);
+        negated.push(entry.label);
       }
     }
     s.symptoms = [...sym];
     for (const entry of lexicon?.state || []) {
-      if (!entry.patterns.some(p => new RegExp(p, "i").test(t))) continue;
+      let pos = false;
+      for (const p of entry.patterns) {
+        for (const m of t.matchAll(new RegExp(p, "gi"))) {
+          if (m[0] && !isNeg(t, m.index, m.index + m[0].length, true)) pos = true;
+        }
+      }
+      if (!pos) continue;
       const set = entry.set || {};
       if ("sleepH" in set) s.sleepH = set.sleepH;
       if ("shortNightsMin" in set) s.shortNights = Math.max(s.shortNights, set.shortNightsMin);
       if ("mood" in set) s.mood = set.mood;
       heard.push(entry.label);
     }
-    return { signals: s, heard };
+    for (const entry of lexicon?.measures || []) {
+      for (const p of entry.patterns) {
+        const m = t.match(new RegExp(p, "i"));
+        if (!m) continue;
+        const v = readMeasure(entry.kind, m[1], m[2]);
+        if (v == null) continue;
+        s[entry.signal] = v;
+        heard.push(`${entry.label} ${v} °C`);
+        break;
+      }
+    }
+    return { signals: s, heard, negated };
   }
 
   /**
