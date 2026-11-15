@@ -1,4 +1,35 @@
+<div align="center">
+
 # VesselWatch
+
+**Ground control that travels with the crew.**<br>
+An astronaut health companion for heart and mind on long missions, built by **Inner Ground Control** for NASA Space Apps 2026, Málaga.
+
+<a href="https://vessel-watch.vercel.app/#/dashboard"><img alt="Open the live demo" src="https://img.shields.io/badge/Open_the_live_demo-vessel--watch.vercel.app-62d6ea?style=for-the-badge&logo=vercel&logoColor=white&labelColor=08121c"></a>
+<img alt="NASA Space Apps 2026" src="https://img.shields.io/badge/NASA_Space_Apps-2026_%C2%B7_M%C3%A1laga-f0a63a?style=for-the-badge&labelColor=08121c">
+<img alt="Simulated data" src="https://img.shields.io/badge/Crew_data-simulated-87a1b1?style=for-the-badge&labelColor=08121c">
+
+<br><br>
+
+<a href="https://vessel-watch.vercel.app/#/dashboard">
+  <img src="docs/screenshots/dashboard.png" alt="VesselWatch crew console: Lumi the robot-cat companion, today's check-in, key vital signs including neck vein flow, the mission timeline from launch to landing, upcoming procedures and medical tasks" width="100%">
+</a>
+
+<sub>The crew console on mission day 50 of 232. All crew data is simulated. Click the image to open the live app.</sub>
+
+</div>
+
+## Try it
+
+**Live app:** [vessel-watch.vercel.app](https://vessel-watch.vercel.app/#/dashboard). It runs in the browser, with nothing to install.
+
+- **Start check-in:** three quick questions; Lumi checks them against the sensors and tells you what happens next.
+- **Talk to Lumi** or **Push to talk:** the same check-in by voice, hands-free.
+- **Vital signs, Medical follow-up, Wellbeing:** what the medical agent sees, and who gets told what.
+
+Voice works best in Chrome.
+
+## About
 
 An astronaut health companion for long missions, built for the NASA Space Apps Challenge. Lumi, a robot-cat companion, runs a short daily check-in or a voice-guided body scan. A transparent medical agent then decides what to do and who needs to know. It focuses on circulation and neck-vein clot risk in microgravity.
 
