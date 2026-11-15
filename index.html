@@ -1651,6 +1651,90 @@ details.paused[open] > .tasks{position:absolute;z-index:30;left:0;right:0;bottom
   #wbTabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
   #wbTabs button{flex:none}
 }
+/* ---------- UX guide pass (Nov 15 2026) ----------
+   1 Purpose at first glance: the dashboard hero (Lumi, big, wearing the overall health status as a heart badge;
+     one sentence; one primary button). 3 Hierarchy: the check-in CTA lives in the hero, not bottom right.
+   Emergency: pictograms with a few words; full text one tap away. Follow-up: tappable rings, live stopwatch. */
+.dtop{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}
+.d-hero{--hc:var(--cyan);display:flex;gap:1.1rem;align-items:center;padding:.8rem 1.1rem;border-width:1px;border-color:color-mix(in srgb,var(--hc) 55%,var(--line));
+  background:radial-gradient(120% 140% at 0% 50%,color-mix(in srgb,var(--hc) 16%,var(--panel)),var(--panel) 62%)}
+.d-hero[data-level="normal"]{--hc:var(--s-ok)} .d-hero[data-level="advisory"],.d-hero[data-level="informational"]{--hc:var(--s-prev)}
+.d-hero[data-level="warning"]{--hc:var(--s-alert)} .d-hero[data-level="critical"]{--hc:var(--s-emer)}
+.d-hero .dl-av{position:relative;width:132px;height:132px;overflow:visible;border:2px solid color-mix(in srgb,var(--hc) 70%,transparent);
+  background:radial-gradient(circle,color-mix(in srgb,var(--hc) 22%,transparent),transparent 70%);box-shadow:0 0 0 6px color-mix(in srgb,var(--hc) 10%,transparent)}
+.d-hero .lumi.mini{width:124px;height:124px;margin-top:8px}
+.dl-heart{position:absolute;right:-6px;bottom:2px;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--panel);border:2px solid var(--hc)}
+.dl-heart svg{width:24px;height:24px;fill:var(--hc);animation:hbeat var(--beat,1s) ease-in-out infinite}
+@keyframes hbeat{0%,100%{transform:scale(1)}12%{transform:scale(1.18)}24%{transform:scale(1)}36%{transform:scale(1.1)}}
+.d-hero[data-level="pending"] .dl-heart svg{fill:none;stroke:var(--hc);stroke-width:2}
+.dl-eyebrow{display:flex;flex-wrap:wrap;gap:.35rem .8rem;align-items:baseline;margin:0;font-size:.8rem;color:var(--muted);letter-spacing:.02em}
+.dl-eyebrow > span:first-child{text-transform:uppercase;font-weight:700;letter-spacing:.08em;font-size:.74rem}
+.d-hero .dl-st{color:var(--muted);font-size:.78rem}
+.dl-state{display:flex;align-items:center;gap:.55rem;margin:.1rem 0 .15rem;font-family:var(--display);font-weight:700;font-size:clamp(1.6rem,2.2vw,2.1rem);line-height:1.1;color:var(--hc)}
+.dl-state .lv{width:14px;height:14px;background:var(--hc)}
+.dl-why{margin:0 0 .25rem;font-size:1rem;line-height:1.4;color:var(--text);max-width:60ch}
+.d-hero .dl-msg{margin:0 0 .55rem;font-size:.84rem;color:var(--muted);-webkit-line-clamp:1}
+.d-hero .dl-act{gap:.5rem;align-items:center}
+.cta.big{min-height:52px;padding:.35rem 1.4rem;font-size:1.05rem;flex-direction:row;gap:.6rem}
+.cta.big small{font-family:var(--body);font-weight:600;font-size:.76rem;opacity:.8}
+.cta.big.crit{background:var(--s-emer-solid);border-color:var(--s-emer-solid)}
+.d-hero .cta.ghost.sm{color:var(--text);border-color:var(--line)}
+@media (prefers-reduced-motion:reduce){ .dl-heart svg{animation:none} }
+@media (min-width:900px) and (max-height:940px){
+  .d-hero{padding:.6rem .9rem} .d-hero .dl-av{width:104px;height:104px} .d-hero .lumi.mini{width:98px;height:98px;margin-top:6px}
+  .dl-heart{width:36px;height:36px} .dl-heart svg{width:20px;height:20px}
+  .dl-state{font-size:1.55rem} .dl-why{font-size:.92rem} .d-hero .dl-msg{display:none}
+}
+@media (min-width:900px) and (max-height:720px){ .d-hero .dl-av{width:84px;height:84px} .d-hero .lumi.mini{width:80px;height:80px} }
+@media (max-width:1279px){ .dtop{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:560px){
+  .d-hero{flex-direction:column;align-items:flex-start;text-align:left}
+  .d-hero .dl-av{width:104px;height:104px} .d-hero .lumi.mini{width:98px;height:98px}
+  .d-hero .dl-act{width:100%} .cta.big{width:100%}
+}
+
+/* Pictogram grid: emergency at a glance (dashboard card, critical dialog, OCHMO panel, Lumi's urgent reply) */
+.pic-grid{list-style:none;margin:.6rem 0 .2rem;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:.45rem}
+.pic-grid li{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.3rem;padding:.6rem .45rem .55rem;border-radius:12px;
+  background:color-mix(in srgb,var(--s-emer-solid) 10%,var(--panel));border:1px solid color-mix(in srgb,var(--s-emer) 35%,var(--line))}
+.pic-grid li b{font-size:.92rem;line-height:1.25;font-weight:700;color:var(--text)}
+.pic-grid li small{font-size:.74rem;color:var(--muted)}
+.pic{width:44px;height:44px;fill:none;stroke:var(--s-emer);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.pic-grid li.no .pic{stroke:var(--s-emer)}
+.nc-full{margin-top:.45rem}
+.nc-full > summary,.dlg-why > summary,.ochmo-more > summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600;font-size:.88rem;color:var(--text);list-style:none}
+.nc-full > summary::before,.dlg-why > summary::before,.ochmo-more > summary::before{content:"›";display:inline-block;margin-right:.45rem;transition:transform .2s;font-size:1.1rem}
+.nc-full[open] > summary::before,.dlg-why[open] > summary::before,.ochmo-more[open] > summary::before{transform:rotate(90deg)}
+.nc-full > summary::-webkit-details-marker,.dlg-why > summary::-webkit-details-marker,.ochmo-more > summary::-webkit-details-marker{display:none}
+#dlgAlert .pic-grid{margin-top:.2rem}
+.dlg-why .dlg-sub{margin-top:.1rem}
+.ochmo-quick{margin:.5rem 0}
+.ochmo-quick li{background:color-mix(in srgb,var(--s-emer-solid) 8%,var(--panel2,var(--panel)))}
+.ochmo[data-st="YELLOW"] .ochmo-quick li{background:color-mix(in srgb,var(--s-alert) 10%,var(--panel));border-color:color-mix(in srgb,var(--s-alert) 35%,var(--line))}
+.ochmo[data-st="YELLOW"] .ochmo-quick .pic{stroke:var(--s-alert)}
+
+/* Lumi's local conversation: urgent card, quick-reply chips */
+#flow .nc-btn.main{--c:var(--cyan)}
+.lc-urgent{--c:var(--s-emer-solid);background:color-mix(in srgb,var(--s-emer-solid) 9%,var(--panel));border-radius:12px;padding:.7rem .85rem}
+.lc-urgent .lc-lead{margin:.2rem 0 0;font-size:1.15rem;font-weight:700;color:var(--s-emer)}
+.lc-urgent .lc-lead b{color:var(--text)}
+.lc-urgent > small{display:block;margin-top:.45rem}
+.lc-chips{display:flex;flex-wrap:wrap;gap:.4rem;margin:.55rem 0 .2rem}
+.lc-chip{min-height:44px;padding:.35rem .85rem;border-radius:999px;font-size:.88rem}
+.lc-sos{--c:var(--s-emer-solid)}
+.lc-chips .nc-btn{min-height:44px}
+
+/* Follow-up: the ring is a button; timed tasks show a live stopwatch with Pause/Resume and Done */
+.ring-btn{background:none;border:0;padding:0;width:44px;height:44px;margin:-8px;display:grid;place-items:center;border-radius:50%;cursor:pointer}
+.ring-btn .ring2{width:30px;height:30px}
+.ring-btn:hover .ring2 .rt,.ring-btn:focus-visible .ring2 .rt{stroke:var(--s-ok);fill:color-mix(in srgb,var(--s-ok) 14%,transparent)}
+.ring-btn:hover .ring2 .rc{opacity:.55;stroke:var(--s-ok)}
+.mbtns{display:inline-flex;gap:.35rem}
+.mbtn.ghost{border-color:var(--line);color:var(--muted)}
+.mbtn{min-height:44px}
+.task-sub{font-variant-numeric:tabular-nums}
+.done-list .dl-count{color:var(--muted);font-variant-numeric:tabular-nums;margin-left:.3rem}
+.done-list .btn2.more{margin-left:.35rem;min-width:44px;min-height:36px}
 </style>
 </head>
 <body>
@@ -1714,10 +1798,18 @@ details.paused[open] > .tasks{position:absolute;z-index:30;left:0;right:0;bottom
       <h2 class="sr" id="h-dashboard" tabindex="-1">Dashboard</h2>
       <div class="dash">
         <div class="dtop">
-        <section class="dcard d-lumi" id="dashLumi" aria-labelledby="dlT">
-          <button type="button" class="dl-av" id="dlAv" aria-label="Open Lumi assistant"><svg class="lumi mini" id="dashLumiAv" viewBox="0 0 200 200" aria-hidden="true"></svg></button>
-          <div class="dl-body"><div class="dl-h"><h3 id="dlT">Lumi</h3><span class="dl-st" id="dlSt"></span></div><p class="dl-msg" id="dlMsg"></p>
-            <div class="dl-act"><button type="button" class="cta sm" data-v3="talk"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Talk to Lumi</button><a class="cta ghost sm" href="#/lumi">Open chat</a></div></div>
+        <!-- Hero: the one place to look first. Lumi (big) wears your overall health status as a heart badge;
+             one sentence says what it means and one primary button says what to do next. -->
+        <section class="dcard d-lumi d-hero" id="dashLumi" data-level="pending" aria-labelledby="dlT">
+          <button type="button" class="dl-av" id="dlAv" aria-label="Open Lumi assistant"><svg class="lumi mini" id="dashLumiAv" viewBox="0 0 200 200" aria-hidden="true"></svg>
+            <span class="dl-heart" id="dlHeart" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"/></svg></span></button>
+          <div class="dl-body">
+            <p class="dl-eyebrow"><span>Your health today</span><span class="dl-st" id="dlSt"></span></p>
+            <h3 class="dl-state" id="dlT"><i class="lv" aria-hidden="true"></i><span id="dlState">Check-in due</span></h3>
+            <p class="dl-why" id="dlWhy"></p>
+            <p class="dl-msg" id="dlMsg"></p>
+            <div class="dl-act" id="dlAct"></div>
+          </div>
         </section>
         <div class="dcard d-mission">
           <div class="timeline" aria-label="Mission timeline">
@@ -1995,6 +2087,7 @@ details.paused[open] > .tasks{position:absolute;z-index:30;left:0;right:0;bottom
 <script src="./engine/hemomind-core.js"></script>
 <script type="module">
 import { createAgent, loadPlaybook } from "./agent/agent.js";
+import * as LC from "./ui/lumiChat.js";
 import { VITAL_LEVELS, VITAL_LABEL, vitalStatus, trend, freshness, ALERT_LEVELS, ALERT_LABEL, SOURCE_LABEL, REVIEW_LABEL,
          deriveAlerts, mergeAlerts, overallStatus, TASK_LABEL, taskAction, connectivity, ago } from "./ui/model.js";
 (async function(){
@@ -2108,12 +2201,22 @@ import { VITAL_LEVELS, VITAL_LABEL, vitalStatus, trend, freshness, ALERT_LEVELS,
   /* ---------- live rendering from the stream ---------- */
   const esc2 = t=>String(t).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   let lastDecisionKey = "";
+  /* OCHMO decision at a glance: the neck-vein finding, the flight-rule holds and whether treatment starts. */
+  function ochmoTiles(d){
+    return `<ul class="pic-grid ochmo-quick" aria-label="At a glance">
+      <li>${picto("scan")}<b>${esc2(d.ijv.flow)}</b><small>Left neck vein</small></li>
+      ${d.flightRules.map(r=>`<li class="${r.authorized?"":"no"}">${picto(r.authorized?"still":"noeva")}<b>${esc2(r.label.replace(/\s*\(.*\)/,""))}: ${esc2(r.text)}</b></li>`).join("")}
+      ${d.prescription.give ? `<li>${picto("medic")}<b>Treatment with your medical officer</b><small>NASA protocol</small></li>` : ""}
+    </ul>`;
+  }
   function renderDecision(d){
     const rx = d.prescription;
     $("ochmo").dataset.st = d.status;
     $("ochmo").innerHTML = `
       <div class="oh"><span class="light" aria-hidden="true"></span><span class="ow">${d.status} · ${esc2(d.statusWord)}</span><span class="muted">${esc2(d.protocol)} · branch ${d.branch}</span></div>
       <h4>${esc2(d.headline)}</h4>
+      ${d.status!=="GREEN" ? ochmoTiles(d) : ""}
+      <details class="ochmo-more" ${d.status==="GREEN" ? "open" : ""}><summary>Full protocol details</summary>
       <p>${esc2(d.diagnosis)}</p>
       <p class="muted">Left IJV: ${esc2(d.ijv.flow)} · ${esc2(d.ijv.grade)} · area ${esc2(d.ijv.csa)}</p>
       <div class="rules2">${d.flightRules.map(r=>`<span class="badge2 ${r.authorized?"":"no"}">${esc2(r.label)}: ${esc2(r.text)}</span>`).join("")}</div>
@@ -2123,7 +2226,7 @@ import { VITAL_LEVELS, VITAL_LABEL, vitalStatus, trend, freshness, ALERT_LEVELS,
         ${rx.washout?`<p class="muted">${esc2(rx.washout)}</p>`:""}
         <p class="muted">Hormonal therapy: ${esc2(rx.hormone)}</p></div>
       <ul class="care">${d.care.map(c=>`<li class="${c.ochmo?"":"nonochmo"}">${esc2(c.label)}. ${esc2(c.detail)}<span>${esc2(c.basis)}</span></li>`).join("")}</ul>
-      <details><summary>Evidence for this scenario</summary>${d.evidence.map(e=>`<blockquote>“${esc2(e.quote)}” · ${esc2(e.cite)}</blockquote>`).join("")}</details>`;
+      <details><summary>Evidence for this scenario</summary>${d.evidence.map(e=>`<blockquote>“${esc2(e.quote)}” · ${esc2(e.cite)}</blockquote>`).join("")}</details></details>`;
   }
   function renderLive(v, force){
     V = v;
@@ -2419,7 +2522,7 @@ import { VITAL_LEVELS, VITAL_LABEL, vitalStatus, trend, freshness, ALERT_LEVELS,
         speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang="en-US"; u.rate=1.02;
         u.onend=u.onerror=res; speechSynthesis.speak(u); setTimeout(res, 20000); });
     } finally {
-      if (pause){ speakingNow=false; if(listenMode){ setTimeout(()=>{ try{ listenRecog.start(); }catch(_){} }, 150); } }
+      if (pause){ speakingNow=false; if(listenMode){ setTimeout(()=>{ if(listenMode && engine==="browser"){ try{ listenRecog.start(); }catch(_){} } }, 150); } }
     }
   }
 
@@ -2497,14 +2600,40 @@ import { VITAL_LEVELS, VITAL_LABEL, vitalStatus, trend, freshness, ALERT_LEVELS,
   /* ---------- daily missions (A) ---------- */
     let M = [];
   const goalTarget = t => t.goal.type==="check" ? 1 : t.goal.target;
+  /* Timed tasks (exercise): Start runs a real stopwatch; the minutes add up as time passes, Pause/Resume keep the
+     total, and the task completes by itself at the goal. Kept outside the task state machine (ui/model.js). */
+  const TIMERS = {};
+  const tElapsed = id => { const T = TIMERS[id]; return T ? T.acc + (T.since ? Date.now()-T.since : 0) : 0; };
+  const fmtClock = ms => { const s = Math.floor(ms/1000), h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60; return (h ? h+":"+String(m).padStart(2,"0") : m) + ":" + String(x).padStart(2,"0"); };
+  function timerStart(id){ const T = TIMERS[id] = TIMERS[id] || { acc:0, since:null }; if (!T.since) T.since = Date.now(); }
+  function timerPause(id){ const T = TIMERS[id]; if (T?.since){ T.acc += Date.now()-T.since; T.since = null; } }
+  function tickTimers(){
+    if (!v3ready) return;
+    for (const id of Object.keys(TIMERS)){
+      if (!TIMERS[id].since) continue;
+      const i = M.findIndex(t=>t.id===id); if (i<0 || !OPEN(M[i].state)){ timerPause(id); continue; }
+      const t = M[i], ms = tElapsed(id);
+      t.progress = Math.min(goalTarget(t), Math.floor(ms/60000));
+      if (ms >= goalTarget(t)*60000){ timerPause(id); taskDo(i, "complete"); continue; }
+      document.querySelectorAll(`[id="task-${id}"]`).forEach(card=>{
+        const sub = card.querySelector(".task-sub"); if (sub) sub.textContent = missionSub(t);
+        const ra = card.querySelector(".ring2 .ra"); if (ra) ra.setAttribute("stroke-dashoffset", (RING_C*(1-ringPct(t))).toFixed(2));
+      });
+    }
+  }
+  setInterval(tickTimers, 1000);
   function missionSub(t){
-    if (t.goal.type==="count") return `${t.progress} of ${t.goal.target} ${t.goal.unit}`;
-    if (t.goal.type==="minutes") return t.done ? `${t.goal.target} min logged` : `${t.progress} of ${t.goal.target} min · syncs from wearable`;
-    return t.done ? (t.auto==="checkin" ? "Done with this check-in" : "Done") : "Tap when done";
+    if (t.goal.type==="count") return t.done ? `${t.progress} ${t.goal.unit} · goal of ${t.goal.target} met` : `${t.progress} of ${t.goal.target} ${t.goal.unit}`;
+    if (t.goal.type==="minutes"){
+      if (t.done) return `${t.goal.target} min logged`;
+      const T = TIMERS[t.id];
+      return T ? `${fmtClock(tElapsed(t.id))} of ${t.goal.target} min · ${T.since ? "running" : "paused"}` : `${t.progress} of ${t.goal.target} min · tap Start`;
+    }
+    return t.done ? (t.auto==="checkin" ? "Done with this check-in" : "Done") : "Tap the circle or Done";
   }
   // Status ring: empty circle → arc for partial progress → filled circle with a check when done.
   const RING_C = 2*Math.PI*10;
-  const ringPct = t => t.done ? 1 : Math.min(1, t.progress/goalTarget(t));
+  const ringPct = t => t.done ? 1 : t.goal.type==="minutes" && TIMERS[t.id] ? Math.min(1, tElapsed(t.id)/(goalTarget(t)*60000)) : Math.min(1, t.progress/goalTarget(t));
   function ringSVG(t){
     return `<svg class="ring2" viewBox="0 0 24 24" aria-hidden="true"><circle class="rt" cx="12" cy="12" r="10"/>
       <circle class="ra" cx="12" cy="12" r="10" transform="rotate(-90 12 12)" stroke-dasharray="${RING_C.toFixed(2)}" stroke-dashoffset="${(RING_C*(1-ringPct(t))).toFixed(2)}"/>
@@ -2533,16 +2662,32 @@ import { VITAL_LEVELS, VITAL_LABEL, vitalStatus, trend, freshness, ALERT_LEVELS,
   function primaryFor(t){
     if (!OPEN(t.state)) return null;
     if (t.goal.type==="count") return { act:"progress", label:"+1" };
-    if (t.goal.type==="minutes") return t.state==="pending" ? { act:"start", label:"Start" } : { act:"complete", label:"Log done" };
+    if (t.goal.type==="minutes"){
+      const T = TIMERS[t.id];
+      if (t.state==="pending" || !T) return { act:"start", label:"Start" };
+      return T.since ? { act:"pause", label:"Pause", then:{ act:"complete", label:"Done" } } : { act:"resume", label:"Resume", then:{ act:"complete", label:"Done" } };
+    }
     return { act:"progress", label:"Done" };
   }
   function taskCard(t,i){
     const meta = TASK_META[t.id]||{}, prim = primaryFor(t);
+    // The ring is a button too: tap it to tick a check, add one to a count, or start/pause a timed task.
+    const ring = prim ? `<button type="button" class="mi ring-btn" data-i="${i}" data-tact="${prim.act}" aria-label="${prim.act==="progress" && t.goal.type!=="count" ? "Mark done" : prim.label}: ${esc2(t.title)}">${ringSVG(t)}</button>` : `<div class="mi">${ringSVG(t)}</div>`;
     return `<div class="task" data-i="${i}" data-state="${t.state}" id="task-${t.id}">
-      <div class="task-row"><div class="mi">${ringSVG(t)}</div>
+      <div class="task-row">${ring}
         <button type="button" class="task-more" data-i="${i}" aria-expanded="false" aria-controls="tb-${t.id}"><h4>${t.title}</h4><span class="task-sub">${missionSub(t)}</span><span class="sr"> · ${TASK_LABEL[t.state]}. Show details and options</span></button>
-        ${prim?`<button type="button" class="mbtn" data-i="${i}" data-tact="${prim.act}" aria-label="${prim.label}: ${esc2(t.title)}">${prim.label}</button>`:`<span class="t-state">${TASK_LABEL[t.state]}</span>`}</div>
+        ${prim?`<span class="mbtns">${prim.then?`<button type="button" class="mbtn ghost" data-i="${i}" data-tact="${prim.act}" aria-label="${prim.label}: ${esc2(t.title)}">${prim.label}</button><button type="button" class="mbtn" data-i="${i}" data-tact="${prim.then.act}" aria-label="${prim.then.label}: ${esc2(t.title)}">${prim.then.label}</button>`
+          :`<button type="button" class="mbtn" data-i="${i}" data-tact="${prim.act}" aria-label="${prim.label}: ${esc2(t.title)}">${prim.label}</button>`}</span>`:`<span class="t-state">${TASK_LABEL[t.state]}</span>`}</div>
       <div class="task-body" id="tb-${t.id}" hidden></div></div>`;
+  }
+  /* Goal met but still drinking: a count task keeps counting after it is completed (the state stays Completed). */
+  function countMore(i){
+    const t = M[i]; if (!t || t.goal.type!=="count" || t.state!=="completed") return null;
+    t.progress = (t.progress||goalTarget(t)) + 1;
+    logAction("task", t.id, `${t.title}: ${t.progress} ${t.goal.unit} (goal of ${t.goal.target} met)`);
+    renderFollowup(); queueV3();
+    $("srState").textContent = `${t.title}: ${t.progress} ${t.goal.unit}.`;
+    return t;
   }
   function taskBody(t,i){
     const meta = TASK_META[t.id]||{}, pct = Math.round((t.progress||0)/goalTarget(t)*100);
@@ -2587,6 +2732,11 @@ import { VITAL_LEVELS, VITAL_LABEL, vitalStatus, trend, freshness, ALERT_LEVELS,
     const was = M[i]?.state; let r;
     try { r = taskAction(M[i], action, { reason }); } catch(e){ return null; }
     M[i] = { ...r.task, done: r.task.state==="completed" };
+    if (M[i].goal.type==="minutes"){   // the stopwatch follows the task state
+      if (action==="start") timerStart(M[i].id);
+      else if (action==="reopen") delete TIMERS[M[i].id];
+      else if (!OPEN(M[i].state)) timerPause(M[i].id);
+    }
     logAction("task", M[i].id, r.entry.text);
     if (M[i].done && was!=="completed"){ addGlow(5); mood("happy"); }
     // V3: re-render the follow-up page (the task moves to its new group; open details stay open)
@@ -2605,6 +2755,35 @@ import { VITAL_LEVELS, VITAL_LABEL, vitalStatus, trend, freshness, ALERT_LEVELS,
   /* "What happens next": the top card of the Today column. Its state (and colour) comes from clinicalState();
      the steps are the agent's actions for others (who is told), numbered in the agent's order. */
   const STATE_LABEL = { emer:"Critical", alert:"Warning", prev:"Advisory", ok:"Stable" };   // same words as the alert list and the mission bar
+  /* One-stroke pictograms (48 px grid) for the emergency cards and Lumi's urgent reply. */
+  function picto(k){   // a function declaration: renderDecision() can run before this line during start-up
+    const PICTO = {
+    still:'<circle cx="24" cy="9" r="4.5"/><path d="M24 14v15M24 29l-6 13M24 29l6 13M14 20h20"/>',
+    medic:'<circle cx="24" cy="24" r="18"/><path d="M24 15v18M15 24h18"/>',
+    nomed:'<rect x="9" y="17" width="30" height="14" rx="7" transform="rotate(-35 24 24)"/><path d="M19 15l10 18"/><path d="M8 40L40 8"/>',
+    speak:'<path d="M9 11h30v19H22l-8 7v-7H9z"/><path d="M24 15v7M24 25.5v.5"/>',
+    earth:'<circle cx="21" cy="27" r="13"/><path d="M8 27h26M21 14c-5 7-5 19 0 26M21 14c5 7 5 19 0 26"/><path d="M34 8a10 10 0 0 1 6 6M33 3a15 15 0 0 1 12 12"/>',
+    noeva:'<circle cx="24" cy="18" r="9"/><path d="M15 34c0-5 4-8 9-8s9 3 9 8v6H15z"/><path d="M8 40L40 8"/>',
+    pill:'<rect x="14" y="12" width="20" height="28" rx="3"/><path d="M12 12h24M18 6h12v6H18M19 26h10M24 21v10"/>',
+    scan:'<path d="M10 30c4 0 4-12 8-12s4 12 8 12 4-12 8-12 4 12 6 12"/><rect x="6" y="8" width="36" height="32" rx="4"/>'
+  };
+    return `<svg class="pic" viewBox="0 0 48 48" aria-hidden="true">${PICTO[k]||PICTO.medic}</svg>`;
+  }
+  /* Emergency at a glance: the playbook's own red-level actions as pictograms with a few words each (readable when
+     dizzy or nauseous). Short labels only shorten the action text; the full text and the why stay one tap away. */
+  const PIC_SHORT = [
+    [/stay still/i, "still", "Stop and stay still"], [/comes to you now/i, "medic", "Medical officer comes to you"],
+    [/neuro check/i, "medic", "Quick check with your medical officer"], [/clot treatment protocol/i, "medic", "Medical officer starts clot treatment"],
+    [/(emergency|priority) call with earth/i, "earth", "Earth doctors join the call"], [/images and plan to earth/i, "earth", "Scan sent to Earth doctors"],
+    [/no spacewalks or resistive/i, "noeva", "No spacewalks or weights for 30+ days"], [/stock/i, "pill", "Check medicine stock"],
+    [/hold all critical tasks/i, "still", "Critical tasks on hold"], [/rest in your crew quarters/i, "still", "Rest in your quarters"]
+  ];
+  function picFor(a){ const m = PIC_SHORT.find(([re])=>re.test(a.text)); return m ? { k:m[1], t:m[2] } : { k:a.who==="earth"?"earth":a.who==="cmd"?"noeva":"medic", t:a.text }; }
+  function emerTiles(R, max=4){
+    const red = R.actions.filter(a=>a.level>=3);
+    const list = (red.length ? red : R.actions).slice().sort((a,b)=>(a.who==="crew"?0:1)-(b.who==="crew"?0:1)).slice(0, max);
+    return `<ul class="pic-grid">${list.map(a=>{ const p = picFor(a); return `<li title="${esc2(a.text)}">${picto(p.k)}<b>${esc2(p.t)}</b><small>${esc2(a.whoLabel.split(",")[0])}</small></li>`; }).join("")}</ul>`;
+  }
   function nextCard(R){
     if (!R) return `<section class="next-card" data-st="wait" aria-labelledby="ncT">
         <div class="nc-head"><span class="nc-pill">Waiting for check-in</span></div>
@@ -2632,7 +2811,8 @@ import { VITAL_LEVELS, VITAL_LABEL, vitalStatus, trend, freshness, ALERT_LEVELS,
     return `<section class="next-card" data-st="${st}" aria-labelledby="ncT">
         <div class="nc-head"><span class="nc-pill">${STATE_LABEL[st]}</span><span class="nc-who">${who.length ? "Told: "+who.join(" · ") : "Nobody else is told"}</span></div>
         <h3 class="nc-title" id="ncT">${R.meaning}</h3>
-        ${steps.length ? `<div class="nc-steps2 ${who.length<=1?"one-who":""}">${steps.map(step).join("")}</div>` : ""}
+        ${st==="emer" ? emerTiles(R) + (steps.length ? `<details class="nc-full"><summary>Full steps and why</summary><div class="nc-steps2 ${who.length<=1?"one-who":""}">${steps.map(step).join("")}</div></details>` : "")
+          : steps.length ? `<div class="nc-steps2 ${who.length<=1?"one-who":""}">${steps.map(step).join("")}</div>` : ""}
         ${st==="emer" ? `<div class="nc-actions">
             <button type="button" class="nc-btn main" data-act="talk"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Tell Lumi what’s happening</button>
             ${hasCmo?`<button type="button" class="nc-btn" data-act="nocmo">Medical officer not reachable</button>`:""}
@@ -2698,6 +2878,7 @@ import { VITAL_LEVELS, VITAL_LABEL, vitalStatus, trend, freshness, ALERT_LEVELS,
       if (!c.re.test(text)) continue;
       const i = M.findIndex(t=>c.ids.includes(t.id));
       if (i<0) continue;
+      if (M[i].done && M[i].goal.type==="count"){ const t = countMore(i); return `Logged. ${t.title}: ${t.progress} ${t.goal.unit}. Goal already met.`; }
       if (M[i].done) return `${M[i].title} is already done.`;
       if (!OPEN(M[i].state)) return `${M[i].title} is ${TASK_LABEL[M[i].state].toLowerCase()}. Open it in the follow-up list to change that.`;
       const t = advance(i);
@@ -2740,10 +2921,14 @@ import { VITAL_LEVELS, VITAL_LABEL, vitalStatus, trend, freshness, ALERT_LEVELS,
     $("verdict").dataset.sev="-1"; $("vSev").textContent="…"; $("vText").textContent="Checking the playbook…"; $("rules").innerHTML=""; $("acts").innerHTML="";
     setTimeout(()=>{
       const plan = agent.planDay(toSignals(S)); const R = plan.assessment;
+      // Symptoms reported but no rule fired (only the WB-0 baseline): never answer "everything looks like your usual".
+      const reported = [...S.sym].filter(x=>x!=="none").map(x=>(SYM_LABEL[x]||x).toLowerCase()).concat([...(S.extra||[])].map(x=>(EXTRA_LABEL[x]||x).toLowerCase()));
+      const noted = R.severity===0 && R.rules.every(r=>r.id==="WB-0") && reported.length
+        ? `I logged your ${reported.join(", ")} for your medical officer. Nothing in the protocol needs action for it right now. If it gets worse, or anything new starts, tell me straight away.` : "";
       renderTimeline(plan);
       showAssessment(R);
-      setRest(R.severity===3?"alert":R.severity===2?"concerned":"happy");
-      lumiSay(R.severity===3?"I’m right here.":R.severity===2?"Let’s take a look.":`All good, ${CREW.firstName}!`);
+      setRest(R.severity===3?"alert":R.severity===2||noted?"concerned":"happy");
+      lumiSay(R.severity===3?"I’m right here.":R.severity===2?"Let’s take a look.":noted?"Noted.":`All good, ${CREW.firstName}!`);
       if (!opts.noReward){ checkins++; $("sCheck").textContent=checkins; addGlow(15); }
       const tone = R.severity===3?"red":R.severity===2?"amber":"";
       const fired = new Set(R.rules.map(r=>r.id));
@@ -2754,7 +2939,7 @@ import { VITAL_LEVELS, VITAL_LABEL, vitalStatus, trend, freshness, ALERT_LEVELS,
       const msg = (opener ? opener+" " : "") + R.message;
       const sub = R.severity===3 ? "If anything changes, like chest pain or trouble breathing, say it out loud and Lumi calls Ines." : "";
       lastR = R; checkinState = { step:"done", at:Date.now() }; recordCheckin(R, opts);
-      (opener ? render : append)(lumiReply(R, opener, tone, sub, plan) + (extra ? `<div>${extra}</div>` : ""));
+      (opener ? render : append)(lumiReply(R, opener || noted, tone, sub, plan) + (extra ? `<div>${extra}</div>` : ""));
       setToday(R, plan, true);
       logAction("assessment", "R", `Assessment ${R.level}: ${R.rules.map(r=>r.id).join(", ")} · playbook v${R.playbookVersion}`, { private: R.rules.some(r=>/^(WB|BH)-/.test(r.id)) });
       recordScan(opts.after==="body" ? "Voice body scan" : opts.opener ? "Scenario" : "Check-in");
@@ -2762,9 +2947,11 @@ import { VITAL_LEVELS, VITAL_LABEL, vitalStatus, trend, freshness, ALERT_LEVELS,
       flow.querySelectorAll("[data-goto]").forEach(b=>b.onclick=()=>tab(b.dataset.goto));
       const se=$("sendEarth"); if(se) confirmable(se, "Confirm: send private note", ()=>{ se.textContent = link==="online" ? `Sent. Reply in about ${Math.ceil(V.comms.roundTripSec/60)} min (round trip)` : "Queued. Sends when the Earth link is back"; se.disabled=true;
         logAction("note", "BH-1", "Private note to the Earth psychology team", { private:false }); });
-      const open = M.filter(t=>!t.done).map(t=>t.title.split(":")[0].toLowerCase());
+      // Spoken reply: short and conversational (what I heard, what it means, the one thing to do). Details stay on screen.
       const ack = pendingAck ? pendingAck+" " : ""; pendingAck="";
-      speak(ack + R.message + (open.length ? ` Today's missions: ${open.join(", ")}.` : ""));
+      const doNow = R.actions.find(a=>a.who==="crew");
+      speak(ack + (opener ? opener+" " : "") + (noted ? "I logged it. Nothing needs action right now. Tell me if it gets worse."
+        : firstSent(R.message) + (R.severity>=2 && doNow ? " " + doNow.text.replace(/\.$/,"") + "." : "") + (R.severity>=3 ? " Your medical officer is on it." : R.severity>=2 ? " I’ve told your medical officer." : "")));
       if (opts.after==="body"){
         const zi=$("zoneInfo"); zi.className="zone-info "+(R.severity===3?"alert":R.severity===2?"watch":"ok");
         zi.innerHTML=`<h3>Scan complete: ${R.level}</h3><p>${R.message}</p><button class="go alt" id="toMissions">See today’s missions</button>`;
@@ -2977,7 +3164,7 @@ import { VITAL_LEVELS, VITAL_LABEL, vitalStatus, trend, freshness, ALERT_LEVELS,
   }
   /* Follow-up questions are answered from the same assessment and the playbook's red-flag rules only. */
   const RED_FLAGS = ALL_RULES.filter(r=>r.severity===3 && r.evidenceLevel==="clinical-red-flag").map(r=>r.title);
-  function answerAsk(kind){
+  function answerAsk(kind, o={}){
     const R = lastR; if (!R) return;
     const Q = { why:"Why this?", now:"What do I do now?", when:"When do I call the medical officer?" }[kind];
     let a, sub;
@@ -2993,7 +3180,8 @@ import { VITAL_LEVELS, VITAL_LABEL, vitalStatus, trend, freshness, ALERT_LEVELS,
       a = `Call your medical officer straight away for: ${RED_FLAGS.join("; ").toLowerCase()}.` + (R.severity>=2 ? " For today’s finding your medical officer is already told." : "");
       sub = "From the playbook’s red-flag rules (standard clinical warning signs). Say it out loud and Lumi alerts them.";
     }
-    append(tx(Q, "", "you", "You") + tx(a, sub, "", "Lumi · from the playbook"));
+    append((o.echo===false ? "" : tx(Q, "", "you", "You")) + tx(a, sub, "", "Lumi · from the playbook"));
+    if (o.echo===false) speak(a.split(". ")[0] + ".");
     logAction("ask", kind, `Asked Lumi: ${Q}`, { private:true });
   }
   flow.addEventListener("click", e=>{
@@ -3122,6 +3310,10 @@ import { VITAL_LEVELS, VITAL_LABEL, vitalStatus, trend, freshness, ALERT_LEVELS,
       document.querySelectorAll(".task-body").forEach(b=>{ if (b!==body){ b.hidden=true; b.closest(".task").querySelector(".task-more").setAttribute("aria-expanded","false"); } });
       body.hidden = !open; more.setAttribute("aria-expanded", open); openTask = open ? M[i].id : null; if (open) body.innerHTML = taskBody(M[i], i); return; }
     if (t){ const i=+t.dataset.i, act=t.dataset.tact;
+      if (act==="pause" || act==="resume"){ const id = M[i].id; act==="pause" ? timerPause(id) : timerStart(id);
+        logAction("task", id, `${M[i].title}: timer ${act==="pause" ? "paused" : "resumed"} at ${fmtClock(tElapsed(id))}`); renderFollowup(); queueV3();
+        $("task-"+id)?.querySelector(`.mbtn[data-tact="${act==="pause" ? "resume" : "pause"}"]`)?.focus(); return; }
+      if (act==="more"){ countMore(i); document.querySelector(`.done-list [data-tact="more"][data-i="${i}"]`)?.focus(); return; }
       if (act==="skipform"){ const f = t.closest(".task-body").querySelector(".skip-form"); f.hidden = !f.hidden; if (!f.hidden) f.querySelector("select").focus(); return; }
       if (act==="skip"){ taskDo(i, "skip", t.closest(".skip-form").querySelector("select").value); return; }
       armOrRun(t, ()=>{ if (act==="escalate"){ const r = taskDo(i, "escalate"); if (r) $("srState").textContent = `${r.title}: medical officer notified.`; } else taskDo(i, act); });
@@ -3314,22 +3506,112 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null,"te
   $("aiToggle").onclick=()=>{ aiOn=!aiOn; syncAI(); };
   // Everything Lumi hears or reads (typed, push-to-talk, listening mode) goes through route().
   function heard(text){ route(text); }
+  /* ---------- Lumi conversation plan (ui/lumiChat.js) ----------
+     Every free-form message (typed, or spoken outside a check-in) is first classified locally, in English or Spanish:
+     urgent → emergency card + medical officer alerted (+ agent when there are symptoms); symptoms → agent; questions
+     about a reading or about today → answered from the data and the playbook; anything else gets a short, honest
+     reply. Nothing unclear ever falls through to a "you're fine" status. The rules reader (agent.parse) is still
+     consulted, so an English red flag the local plan misses is never lost. */
+  let chatLang = "en", sosAt = null;
+  function lcChips(I, extra=""){
+    const W = LC.words(I.lang);
+    return `<div class="lc-chips" role="group" aria-label="${I.lang==="es"?"Respuestas rápidas":"Quick replies"}">${W.chips.map(([,l])=>`<button type="button" class="chip lc-chip" data-lsay="${esc2(l)}">${l}</button>`).join("")}${extra}</div>`;
+  }
+  const sosBtn = I => `<button type="button" class="nc-btn main lc-sos" data-lc="sos">${I.lang==="es"?"Avisar al médico":"Alert medical officer"}</button>`;
+  /* Emergency card: four pictograms, a few words each, so it still reads when dizzy. */
+  function urgentCard(I, reason){
+    const es = I.lang==="es", told = sosAt ? (es?`Avisado ${fmtHM(sosAt)}`:`Alerted ${fmtHM(sosAt)}`) : "";
+    const tiles = [["still", es?"Quédate donde estás":"Stay where you are"], ["medic", es?"Médico avisado":"Medical officer alerted", told],
+                   ["nomed", es?"Sin medicinas por tu cuenta":"No medicine on your own"], ["speak", es?"Dime si empeora":"Tell me if it gets worse"]];
+    return `<div class="tx red lc-urgent" role="alert"><div class="from">Lumi<span class="kind">${es?"Urgente":"Urgent"}</span></div>
+      <p class="lc-lead">${es?"Esto es urgente.":"This is urgent."} <b>${esc2(reason)}</b></p>
+      <ul class="pic-grid">${tiles.map(([k,l,s])=>`<li>${picto(k)}<b>${l}</b>${s?`<small>${s}</small>`:""}</li>`).join("")}</ul>
+      <div class="nc-actions"><button type="button" class="nc-btn" data-lc="nocmo">${es?"No localizo al médico":"Medical officer not reachable"}</button></div>
+      <small>${es?"Ruta de demostración, pendiente de revisión clínica.":"Demo routing, pending clinician review."}</small></div>`;
+  }
+  function alertCMO(why){
+    if (!sosAt){ sosAt = Date.now(); logAction("alert", "SOS", `Crew asked for the medical officer: ${why}`); }
+    $("srState").textContent = "Medical officer alerted.";
+  }
+  function lcReply(I, msg, sub, extraHTML="", say=""){
+    append(tx(msg, sub||"", "", "Lumi") + extraHTML);
+    if (I.lang==="en") speak(say || msg);   // the voice engine is English; Spanish replies stay on screen
+  }
+  flow.addEventListener("click", e=>{
+    const c = e.target.closest("[data-lsay]"); if (c){ $("sayInput").value = c.dataset.lsay; $("sayForm").requestSubmit(); return; }
+    const b = e.target.closest("[data-lc]"); if (!b) return;
+    if (b.dataset.lc==="sos"){ alertCMO("asked from Lumi"); b.disabled = true; b.textContent = chatLang==="es" ? `Médico avisado · ${fmtHM(sosAt)}` : `Medical officer alerted · ${fmtHM(sosAt)}`; flashNote(chatLang==="es" ? "Médico de a bordo avisado." : "Medical officer alerted."); }
+    if (b.dataset.lc==="nocmo") nextAction("nocmo");
+    if (b.dataset.lc==="checkin") startNewCheckin();
+  });
   function freeForm(text){
     if (!S) S=freshState();
     keys(null);
     render(tx(text,"","you","You"));   // each free-form message starts a new turn: one exchange on screen at a time
-    const cmd = missionCommand(text);
+    const I = LC.interpret(text); chatLang = I.lang;
+    const W = LC.words(I.lang), es = I.lang==="es";
+    const rules = agent.parse(text, { ...toSignals(S), symptoms:[] });
+    const rulesRed = rules.signals.symptoms.filter(x=>RED_SYM.includes(x));
+    const cmd = (I.red.length || rulesRed.length) ? null : missionCommand(I.mission || text);
     if (cmd){ append(tx(cmd,"","sys","Lumi logged")); speak(cmd); return; }
-    // Anything that isn't a command or a mission goes to the medical agent.
+    let kind = I.kind;
+    if (rulesRed.length) kind = "urgent";
+    else if (rules.heard.length && !["urgent","symptoms","explain","ask"].includes(kind)) kind = "symptoms";
+    const ckBtn = `<button type="button" class="nc-btn main" data-lc="checkin">${es?"Empezar check-in":"Start check-in"}</button>`;
+    if (kind==="urgent"){
+      const red = [...new Set([...I.red, ...rulesRed])];
+      const reason = red.length ? LC.listOf(red, I.lang) : (es?"Has pedido ayuda.":"You asked for help.");
+      alertCMO(red.length ? red.map(x=>SYM_LABEL[x]||x).join(", ") : `"${text}"`);
+      mood("alert"); setRest("alert");
+      append(urgentCard(I, reason[0].toUpperCase()+reason.slice(1)));
+      speak(es ? "" : `This is urgent. Stay where you are. I’ve alerted your medical officer.`);
+      if (!red.length && !I.present.length) return;          // a plea for help with no symptom: routing only
+      return agentTurn(text, I, true);
+    }
+    if (kind==="symptoms") return agentTurn(text, I, false);
+    if (kind==="explain"){ askVital(I.vital, { echo:false }); return; }
+    if (kind==="ask"){
+      if (!lastR) return lcReply(I, W.askBefore, "", `<div class="nc-actions">${ckBtn}</div>`);
+      answerAsk(I.ask, { echo:false }); return;
+    }
+    if (kind==="status"){
+      if (!lastR) return lcReply(I, W.statusNone, "", `<div class="nc-actions">${ckBtn}</div>`);
+      const st = clinicalState(lastR.severity, V.decision.status, vitalsOut), crew = lastR.actions.find(a=>a.who==="crew");
+      return lcReply(I, `${STATE_LABEL[st]}. ${lastR.meaning}`, crew ? (es?"Haz esto: ":"Do this: ") + crew.text : "", "", `${STATE_LABEL[st]}. ${lastR.meaning}`);
+    }
+    if (kind==="greeting") return lcReply(I, W.greeting(CREW.firstName), "", lcChips(I));
+    if (kind==="thanks"){ mood("happy"); return lcReply(I, W.thanks); }
+    if (kind==="good"){ S.mood = S.mood || "good"; mood("happy"); return lcReply(I, W.good); }
+    if (kind==="capabilities") return lcReply(I, W.caps, "", lcChips(I));
+    if (kind==="unwell"){ mood("concerned"); return lcReply(I, W.unwell, W.unknownSub, lcChips(I, sosBtn(I))); }
+    if (kind==="help"){ mood("concerned"); return lcReply(I, W.help, "", `<div class="nc-actions">${sosBtn(I)}</div>` + lcChips(I)); }
+    mood("concerned");
+    lcReply(I, W.unknown, W.unknownSub, lcChips(I, sosBtn(I)));   // unknown: never "you're fine"
+  }
+  /* Symptoms go to the medical agent. The local plan's reading (Spanish, extra symptoms) is merged into the
+     rules/AI reading with the same safety rule: a red flag heard by any reader stays. */
+  function agentTurn(text, I, urgent){
     mood("thinking");
     understand(text).then(u=>{
+      for (const x of I.present) if (!u.present.includes(x) && (RED_SYM.includes(x) || !u.absent.includes(x))) u.present.push(x);
+      for (const x of I.absent) if (!u.present.includes(x) && !u.absent.includes(x)) u.absent.push(x);
+      u.absent = u.absent.filter(x=>!u.present.includes(x));
+      u.sleep = u.sleep ?? I.sleep; u.mood = u.mood ?? I.mood; u.tempC = u.tempC ?? I.tempC;
       applyUnderstanding(u);
-      let any = u.present.length || u.absent.length || u.sleep || u.mood || u.tempC!=null;
-      if (!any && /\b(good|great|fine|happy|okay|ok)\b/i.test(text)){ S.mood = S.mood || "good"; any = true; }
-      const ack = ackText(u);
-      append(tx(ack || (any ? "Got it." : "No symptoms in that. Here’s where you stand…"), "", u.disagreed.length?"sys amber":"sys", "Medical agent · "+u.source));
-      pendingAck = ack || (any ? "" : "I didn’t spot anything health-related in that, so here’s where you stand.");
-      runAgent({fast:true, noReward: !any});
+      S.extra = S.extra || new Set(); I.extra.forEach(x=>S.extra.add(x)); I.extraAbsent.forEach(x=>S.extra.delete(x));
+      if (I.extra.length) logAction("note", "EXTRA", `Crew reported ${I.extra.map(x=>EXTRA_LABEL[x]).join(", ").toLowerCase()} (no playbook rule; logged for the medical officer)`);
+      const any = u.present.length || u.absent.length || u.sleep || u.mood || u.tempC!=null;
+      const echo = I.lang==="es" ? LC.understoodLine({ ...I, present:u.present, absent:u.absent, tempC:u.tempC, sleep:u.sleep, mood:u.mood })
+                                 : [ackText(u), I.extra.length ? LC.words("en").extraLogged(LC.listOf(I.extra,"en")) : ""].filter(Boolean).join(" ");
+      if (!any){   // only symptoms without a playbook rule (dizziness, nausea, muscle pain): logged, never "all good"
+        const es = I.lang==="es";
+        mood("concerned");
+        return lcReply(I, echo, es ? "Si empeora, o te notas a punto de desmayarte, dímelo enseguida." : "If it gets worse, or you feel faint, tell me straight away.",
+          lcChips({ ...I }, sosBtn(I)), echo + " If it gets worse, tell me straight away.");
+      }
+      append(tx(echo || (I.lang==="es"?"Entendido.":"Got it."), "", u.disagreed.length?"sys amber":"sys", (I.lang==="es"?"Lumi ha entendido · ":"Lumi understood · ")+u.source));
+      pendingAck = ackText(u);
+      runAgent({ fast:true, noReward:urgent });
     });
   }
   $("sayForm").addEventListener("submit", e=>{ e.preventDefault(); const v=$("sayInput").value; $("sayInput").value=""; heard(v); });
@@ -3392,11 +3674,27 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null,"te
       return;
     }
     if (recog){
-      if (pttActive){ recog.stop(); return; }
-      window.speechSynthesis?.cancel(); buffer="";
-      try{ recog.start(); setPTT(true); }catch(_){}
+      // Stop always stops: stop() keeps what was said; if Chrome never ends the session, abort() after 1.5 s.
+      if (pttActive){ try{ recog.stop(); }catch(_){} clearTimeout(pttT); pttT=setTimeout(()=>{ if(pttActive){ try{ recog.abort(); }catch(_){} pttEnd(); } }, 1500); return; }
+      window.speechSynthesis?.cancel(); buffer=""; lastInterim=""; pttErr="";
+      try{ recog.start(); setPTT(true); }
+      catch(_){ try{ recog.abort(); }catch(__){} setPTT(false); partial.textContent="The microphone was busy. Tap again to talk."; return; }
+      clearTimeout(pttT); pttT=setTimeout(()=>{ if(pttActive){ try{ recog.stop(); }catch(_){} } }, 15000);   // never stays open by itself
     }
   });
+  let pttT=null, lastInterim="", pttErr="";
+  const MIC_ERR = { "no-speech":"I didn’t hear anything. Tap the microphone and speak.", "audio-capture":"No microphone found. Type to Lumi instead.",
+    "not-allowed":"The microphone is blocked. Allow it in the browser, or type to Lumi.", "service-not-allowed":"The microphone is blocked. Allow it in the browser, or type to Lumi.",
+    "network":"Speech recognition isn’t reachable in this browser. Type to Lumi, or use Chrome." };
+  // End of a push-to-talk phrase: send the final text, or the last partial text if no final result arrived.
+  function pttEnd(){
+    clearTimeout(pttT); if (!pttActive && !buffer && !lastInterim) return;
+    setPTT(false); partial.textContent="";
+    const t = (buffer || lastInterim).trim(); buffer=""; lastInterim="";
+    if (t){ heard(t); return; }
+    mood(""); if (pttErr && pttErr!=="aborted") partial.textContent = MIC_ERR[pttErr] || "I couldn’t hear that. Tap the microphone and try again.";
+    else partial.textContent = "I didn’t catch anything. Tap the microphone and speak.";
+  }
 
   // listening mode: one tap to arm; then "Lumi, activate check-in" or "Lumi, body scan"
   listenBtn.addEventListener("click", ()=>{
@@ -3412,8 +3710,9 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null,"te
     }
   });
   function stopListening(){
-    if (engine==="platform") dict?.stop().catch(()=>{}); else { try{ listenRecog?.stop(); }catch(_){} }
-    setListenUI(false); mood("");
+    const wasBrowser = engine!=="platform";
+    setListenUI(false); mood("");   // listenMode off first, so no handler restarts the microphone
+    if (!wasBrowser) dict?.stop().catch(()=>{}); else { try{ listenRecog?.abort(); }catch(_){} }
   }
 
   function armNoAnswer(){
@@ -3590,18 +3889,21 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null,"te
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return false;
     recog = new SR(); recog.lang="en-US"; recog.interimResults=true; recog.continuous=false;
-    recog.onresult = e=>{ let fin="", inter=""; for(const r of e.results){ (r.isFinal?fin+=r[0].transcript:inter+=r[0].transcript); } partial.textContent=inter; if(fin) buffer=fin; };
-    recog.onend = ()=>{ setPTT(false); partial.textContent=""; heard(buffer); buffer=""; };
-    recog.onerror = e=>{ setPTT(false); partial.textContent=""; if(e.error==="not-allowed"){ recog=null; mic.hidden=!dict; } };
+    recog.onresult = e=>{ let fin="", inter=""; for(const r of e.results){ (r.isFinal?fin+=r[0].transcript:inter+=r[0].transcript); } partial.textContent=inter; if(inter) lastInterim=inter; if(fin) buffer=fin; };
+    recog.onend = ()=>pttEnd();
+    recog.onerror = e=>{ pttErr = e.error; if (e.error==="not-allowed"){ pttEnd(); recog=null; mic.hidden=!dict; partial.textContent=MIC_ERR["not-allowed"]; } };
 
     listenRecog = new SR(); listenRecog.lang="en-US"; listenRecog.interimResults=true; listenRecog.continuous=true;
     listenRecog.onresult = e=>{
+      if (!listenMode) return;   // results that arrive after Stop are dropped
       let inter="";
       for (let i=e.resultIndex;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) handleListen(r[0].transcript); else inter+=r[0].transcript; }
       if (inter) partial.textContent=inter;
     };
-    listenRecog.onend = ()=>{ if(listenMode && engine==="browser" && !speakingNow) setTimeout(()=>{ try{ listenRecog.start(); }catch(_){} }, 250); };
+    // Chrome ends continuous sessions on its own: restart, but re-check at restart time so Stop always wins.
+    listenRecog.onend = ()=>{ if(listenMode && engine==="browser" && !speakingNow) setTimeout(()=>{ if(listenMode && engine==="browser" && !speakingNow){ try{ listenRecog.start(); }catch(_){} } }, 250); };
     listenRecog.onerror = e=>{
+      if (e.error==="network" || e.error==="audio-capture"){ stopListening(); partial.textContent = MIC_ERR[e.error]; return; }
       if (e.error==="not-allowed"||e.error==="service-not-allowed"){
         preferBrowser=false; setListenUI(false);
         if (dict){ lumiSay("Tap the listening button again to use claude.ai dictation."); listenBtn.hidden=false; } else listenBtn.hidden=true;
@@ -3711,11 +4013,27 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null,"te
       : cs==="q1" || cs==="none"
       ? `<p class="ck-st">Due today</p><p class="ck-sub">A few questions, then an automatic sensor scan. About 2 minutes.</p><button type="button" class="cta" data-v3="start-checkin">Start check-in</button>`
       : `<p class="ck-st">In progress · question ${({q2:2,q3:3})[cs]||1} of 3</p><p class="ck-sub">Pick up where you left off.</p><a class="cta" href="#/checkin">Continue check-in</a>`);
-    // Lumi: a short summary, the full chat is on its own page
+    // Hero: overall health status (same words as the header), one sentence, one primary action.
+    const ov = overallStatus(ALERTS, !!lastR), hero = $("dashLumi");
+    hero.dataset.level = ov.level;
+    $("dlState").textContent = ov.text;
+    $("dlWhy").textContent = !lastR ? "Answer 3 quick questions. Lumi checks them with your sensors and tells you how you are."
+      : ov.level==="critical" ? "Act now. Your medical officer and Earth are told." : lastR.meaning;
     const lastL = [...HIST].reverse().find(h=>!/^You/.test(h.from));
     const say = lastR ? firstSent(lastR.message) : lastL ? lastL.text : `Hi ${CREW.firstName}. I’m here when you need me.`;
-    $("dlMsg").textContent = say;
-    $("dlSt").textContent = $("lumiStatus").querySelector("b")?.textContent || "";
+    $("dlMsg").textContent = `Lumi: “${say}”`;
+    $("dlSt").textContent = "Lumi · " + ($("lumiStatus").querySelector("b")?.textContent || "");
+    const hr = vitalMetrics.heartRateBpm?.display; if (hr) $("dlHeart").style.setProperty("--beat", (60/Math.max(40, +hr || 60)).toFixed(2)+"s");
+    const MIC = `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>`;
+    const primary = cs==="none" || cs==="q1" ? `<button type="button" class="cta big" data-v3="start-checkin">Start check-in<small>About 2 min</small></button>`
+      : cs==="q2" || cs==="q3" ? `<a class="cta big" href="#/checkin">Continue check-in<small>Question ${({q2:2,q3:3})[cs]} of 3</small></a>`
+      : ov.level==="critical" ? `<button type="button" class="cta big crit" data-v3="see-next">See what to do now</button>`
+      : `<button type="button" class="cta big" data-v3="talk">${MIC}Talk to Lumi</button>`;
+    const key = primary + ov.level;
+    if ($("dlAct").dataset.k !== key){ $("dlAct").dataset.k = key;
+      $("dlAct").innerHTML = primary + (/data-v3="talk"/.test(primary) ? "" : `<button type="button" class="cta ghost sm" data-v3="talk">${MIC}Talk to Lumi</button>`) + `<a class="cta ghost sm" href="#/lumi">Open chat</a>`; }
+    // The check-in card only adds something once the check-in is done (results); before that the hero carries it.
+    ck.hidden = cs!=="done";
     // the mini avatar mirrors Lumi's current mood (happy / concerned / alert …)
     const av = $("dashLumiAv"), big = $("lumi").getAttribute("class") || "lumi";
     av.setAttribute("class", big.replace(/\bpet\b/g,"") + " mini");
@@ -3950,7 +4268,7 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null,"te
       <div class="fu-col">
         <section class="fu-g" aria-labelledby="fuU"><h3 class="fu-h" id="fuU">Upcoming procedures</h3><p class="fu-note">Scheduled for later flight days. Not due now.</p>${procList(upcoming(5))}</section>
         <section class="fu-g" aria-labelledby="fuD"><h3 class="fu-h" id="fuD">Completed today <span>${done.length}</span></h3>${done.length
-          ? `<ul class="done-list">${done.map(x=>`<li data-state="${x.t.state}"><span>${x.t.title}</span><span class="when">${x.t.state==="completed" && x.t.completedAt ? fmtHM(x.t.completedAt) : TASK_LABEL[x.t.state]}</span><button type="button" class="btn2 sm" data-tact="reopen" data-i="${x.i}" data-confirm="Confirm: reopen">Reopen</button></li>`).join("")}</ul><p class="fu-note"><a class="c-link" href="#/records" data-rec="followups">Full history in medical records</a></p>`
+          ? `<ul class="done-list">${done.map(x=>`<li data-state="${x.t.state}"><span>${x.t.title}${x.t.goal.type==="count" && x.t.state==="completed" ? ` <small class="dl-count">${x.t.progress} ${x.t.goal.unit}</small> <button type="button" class="btn2 sm more" data-tact="more" data-i="${x.i}" aria-label="Add one more: ${esc2(x.t.title)}">+1</button>` : ""}</span><span class="when">${x.t.state==="completed" && x.t.completedAt ? fmtHM(x.t.completedAt) : TASK_LABEL[x.t.state]}</span><button type="button" class="btn2 sm" data-tact="reopen" data-i="${x.i}" data-confirm="Confirm: reopen">Reopen</button></li>`).join("")}</ul><p class="fu-note"><a class="c-link" href="#/records" data-rec="followups">Full history in medical records</a></p>`
           : `<p class="fu-note">Nothing completed yet today.</p>`}</section></div>`;
     if (openTask){ const i = M.findIndex(t=>t.id===openTask), card = $("task-"+openTask);
       if (card && i>=0){ const b = card.querySelector(".task-body"); b.innerHTML = taskBody(M[i], i); b.hidden = false; card.querySelector(".task-more").setAttribute("aria-expanded","true"); } else openTask = null; }
@@ -3976,7 +4294,7 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null,"te
     ol.innerHTML = HIST.length ? HIST.slice().reverse().map(h=>`<li data-from="${esc2(h.from.split(" ")[0])}"><b>${fmtHM(h.at)} · ${esc2(h.from)}</b>${esc2(h.text)}</li>`).join("") : `<li>No messages yet.</li>`;
   }
   /* Questions about a vital sign are answered from the same stream values the cards show, with the data named. */
-  function askVital(k){
+  function askVital(k, o={}){
     let q, a, sub;
     if (k==="flow"){ const d = V.decision;
       q = "Explain my neck vein flow";
@@ -3987,7 +4305,8 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null,"te
       a = `${def.name} is ${vitalValue(def)} ${m.unit}: ${VITAL_LABEL[lv].toLowerCase()}. ${vitalReason[k]||""} Trend: ${trend(m.history,1).text.toLowerCase()}.`;
       sub = `Data: reading at ${fmtT(lastPacketAt)}, stream #${V.seq} · reference ${m.refText} · ${m.cite.short}`;
     }
-    append(tx(q, "", "you", "You") + tx(a, sub, "", "Lumi · from your data"));
+    append((o.echo===false ? "" : tx(q, "", "you", "You")) + tx(a, sub, "", "Lumi · from your data"));
+    if (o.echo===false) speak(a.split(". ").slice(0,2).join(". "));
     logAction("ask", k, `Asked Lumi: ${q}`, { private:true });
   }
 
@@ -4020,6 +4339,7 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null,"te
     const act = b.dataset.v3;
     if (act==="start-checkin"){ if (["q1","q2","q3"].includes(checkinState.step)) go("checkin"); else startNewCheckin(); }
     if (act==="new-checkin") startNewCheckin();
+    if (act==="see-next"){ const f = $("dashNext").querySelector("details.nc-full"); if (f) f.open = true; const d = $("dashNext").querySelector("details.step"); if (d){ d.open = true; d.querySelector("summary").focus(); d.scrollIntoView({block:"nearest"}); } }
     if (act==="talk"){ const m = $("mic"), l = $("listenBtn"); go("lumi");
       if (m && !m.hidden) m.click(); else if (l && !l.hidden && l.getAttribute("aria-pressed")!=="true") l.click(); else $("lumiQ").focus(); }
     if (act==="confirm"){ const c = CHECKINS.at(-1); if (!c || c.confirmedAt) return; c.confirmedAt = Date.now();
@@ -4404,10 +4724,12 @@ Reply with only JSON like {"present":[],"absent":[],"sleep":null,"mood":null,"te
     const proto = a.id==="OCHMO" || a.id==="VT-1";
     D.dataset.level = a.level; D.dataset.id = a.id;
     $("dlgAlertL").textContent = ALERT_LABEL[a.level]; $("dlgAlertT").textContent = a.title;
-    $("dlgAlertD").innerHTML = `<p class="dlg-sub">${a.explanation}</p>
+    // Few words, big pictograms: what happens now. The explanation and the source fold under "Why".
+    $("dlgAlertD").innerHTML = `${lastR && lastR.severity>=3 ? emerTiles(lastR) : proto && V.decision.status!=="GREEN" ? ochmoTiles(V.decision) : ""}
       <div class="dlg-do"><span>Do this now</span><b>${a.action}</b></div>
       ${others.length ? `<p class="dlg-also">Also open: ${others.map(o=>esc2(o.title)).join(" · ")}</p>` : ""}
-      <p class="dlg-meta">Detected ${fmtHM(a.detectedAt||Date.now())} · ${esc2(SOURCE_LABEL[a.source]||"")}${a.needsClinician ? " · your medical officer decides on treatment" : ""}</p>`;
+      <details class="dlg-why"><summary>Why</summary><p class="dlg-sub">${a.explanation}</p>
+      <p class="dlg-meta">Detected ${fmtHM(a.detectedAt||Date.now())} · ${esc2(SOURCE_LABEL[a.source]||"")}${a.needsClinician ? " · your medical officer decides on treatment" : ""}</p></details>`;
     $("dlgAlertF").innerHTML = `<button type="button" class="cta ghost" data-adlg="later">Later</button>
       <button type="button" class="cta ghost" data-adlg="${proto ? "protocol" : "details"}">${proto ? "Open the NASA protocol" : "See details"}</button>
       <button type="button" class="cta" data-adlg="ack" autofocus>Acknowledge</button>`;
