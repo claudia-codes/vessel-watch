@@ -17,6 +17,14 @@ An astronaut health companion for heart and mind on long missions, built by **In
 
 <sub>The crew console on mission day 50 of 232. All crew data is simulated. Click the image to open the live app.</sub>
 
+### Watch the 30-second demo
+
+<a href="docs/media/Inner_Ground_Control_30s.mp4">
+  <img src="docs/media/demo-preview.webp" alt="30-second demo: day 214 in transit to Mars, the commander wakes with a headache, her watch asks for a neck check, a clot in the jugular vein, the guided scan, VesselWatch follows NASA's protocol, and the report leaves for Earth" width="100%">
+</a>
+
+<sub>Silent preview with English captions. AI-generated visuals, simulated data. Click it for the full video.</sub>
+
 </div>
 
 ## Try it
