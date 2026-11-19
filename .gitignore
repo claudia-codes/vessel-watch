@@ -3,3 +3,6 @@ _p*.html
 __pycache__/
 *.pyc
 node_modules/
+
+# Private working notes, kept locally only
+CLAUDE.md

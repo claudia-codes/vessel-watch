@@ -43,6 +43,26 @@ An astronaut health companion for long missions, built for the NASA Space Apps C
 
 **Decision support, not diagnosis.** All crew data in the demo is simulated inside published ISS in-flight ranges by the HemoMind engine. The clot decision is NASA OCHMO-MTB-007 (2026) as a pure function, including its apixaban regimen. Other thresholds are demo values pending clinician review.
 
+## Team
+
+**Inner Ground Control**, NASA Space Apps 2026, Málaga.
+
+| Who | Contribution |
+|---|---|
+| **Violeta** | Co-founded the mental-health side of the concept, and designed the smartwatch concept: how the crew is monitored continuously and when the watch asks for a check. |
+| **Victor** | Co-founded the mental-health side of the concept, proposed basing the companion on a real health app, and built the dashboards. Co-led product refinement. |
+| **Claudia** | Brought the circulation-health focus to the concept and shaped much of the product vision. Turned monitoring into a game the crew wants to play, created Lumi the companion avatar, and designed the AI medical agent, grounded in NASA's clot protocol (OCHMO-MTB-007) and published ISS in-flight medical data. Co-led product refinement. |
+| **Demo** | Created the outstanding final presentation, with a clear vision for its story and visuals. |
+| **Manuel** | Co-founded the mental-health side of the concept, and reviewed the presentation and the product to sharpen both. |
+
+## Tech stack
+
+**Front end:** HTML, CSS and vanilla JavaScript, with no framework · Web Speech API for voice<br>
+**Medical agent:** JavaScript and Python engines sharing one JSON playbook, ready for a FastAPI backend<br>
+**HemoMind engine:** TypeScript, tested with Vitest, compiled to one JS file<br>
+**Quality:** GitHub Actions runs both agent engines against shared safety scenarios on every change<br>
+**Hosting:** Vercel, with preview links on every pull request
+
 ## What's here
 
 | Path | What it is |
@@ -81,8 +101,6 @@ Connect this repo to Vercel as a static site, with no build step. Every push to 
 
 Tap 👂, then say **"Lumi, activate check-in"** or **"Lumi, body scan"**. Anything else after "Lumi" goes to the medical agent. The same commands also work typed into the text box. A full spoken back-and-forth works in Chrome; inside claude.ai, Lumi answers on screen while it listens.
 
-## Working together
+## Contributing
 
-- Work on a branch and open a pull request. Merge small and often.
-- Keep `main` deployable; freeze it before the demo.
-- Clinical changes go in `agent/playbook.json` and need a passing test run.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
